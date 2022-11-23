@@ -1,0 +1,6 @@
+# PostgreSQL
+# ------------------------------------------------------------------------------
+POSTGRES_HOST=postgresDauthenticator
+POSTGRES_PORT=5432
+POSTGRES_DB=dauthenticator
+POSTGRES_USER=UgWOAHrbRWEnGiwjCLBZpgquFsSyjsCi
