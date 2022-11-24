@@ -1,20 +1,20 @@
 version: '2.2'
 
 volumes:
-  local_postgres_data: {}
-  local_postgres_data_backups: {}
+  stage_postgres_data: {}
+  stage_postgres_data_backups: {}
 
 services:
   django:
     build:
       context: .
       dockerfile: ./compose/local/django/Dockerfile
-    image: dauthenticator_local_django
+    image: dauthenticator_stage_django
     container_name: hr_stage_dauthenticator_django
     volumes:
       - .:/app:z
     env_file:
-      - ./.envs/.local/.django
+      - ./.envs/.stage/.django
     depends_on:
       - postgres
     ports:
@@ -25,10 +25,10 @@ services:
     build:
       context: .
       dockerfile: ./compose/production/postgres/Dockerfile
-    image: hr_dev_dauthenticator_postgres
+    image: hr_stage_dauthenticator_postgres
     container_name: postgres
     volumes:
-      - local_postgres_data:/var/lib/postgresql/data:Z
-      - local_postgres_data_backups:/backups:z
+      - stage_postgres_data:/var/lib/postgresql/data:Z
+      - stage_postgres_data_backups:/backups:z
     env_file:
-      - ./.envs/.local/.postgres
+      - ./.envs/.stage/.postgres
