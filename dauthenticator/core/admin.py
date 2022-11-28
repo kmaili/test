@@ -24,7 +24,7 @@ class AccountAuthentificationAdmin(ImportExportModelAdmin):
     def save_model(self, request, obj, form, change):
         obj.save()
 
-    readonly_fields = ('login', 'password', 'ip', 'user_id', 'media')
+    readonly_fields = ('login', 'password', 'user_id')
 
 
 @admin.register(AirflowDAGRUN)

@@ -206,8 +206,6 @@ class AccountAuthentificationViewSet(GenericViewSet):
         accounts_selected.sort(key=lambda account: len(AirflowDAGRUN.objects.filter(session=AccountAuthentification.objects.get(user_id=account["account"]["user_id"]))))  # noqa E501
         for i in range(len(accounts_selected)):
             accounts_selected[i]["account"]["cookie"] = json.loads(accounts_selected[i]["account"]["cookie"])
-        print('------------------------------------------------------------')
-        print(accounts_selected)
         return accounts_selected
 
     def get_node_available(self, remote_url: str) -> int:
