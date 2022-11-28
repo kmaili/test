@@ -1,13 +1,10 @@
-# Crawlserver
-Powered by _**Kaisensdata**_, Crawlserver is a Django app try to collect data (Comment, Publications, ...) from differents website (social media) using Drivers.
+# Dauthentificator
+Powered by _**Kaisensdata**_.
 
 ## Features
 
- - [ ] login and get cookies
- - [ ] mongo : (Kaisens Mongodb image integrated)
- - [ ] python-build: (Kaisens Python-build image with customize pip config file "extra index link" integrated)
- - [ ] Push collected meta data to Minio Server
- - [ ] Save collected data in MongoDB database
+ - [ ] login and get cookies job
+ - [ ] account management
 
 ## Drivers
 
