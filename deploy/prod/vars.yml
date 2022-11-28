@@ -1,0 +1,8 @@
+project_name: "crawlserver"
+docker_compose_path: "dev/docker-compose.yml"
+volume_dirs:
+  - dir_name: data
+  - dir_name: backups
+  - dir_name: config
+    fill_from: "dev/config/"
+  - dir_name: server_logs

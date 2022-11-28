@@ -1,0 +1,33 @@
+version: '3.4'
+
+volumes:
+  dauthenticator_local_postgres_data: {}
+  dauthenticator_local_postgres_data_backups: {}
+
+services:
+  django:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        BUILD_ENVIRONMENT: "local"
+    image: dauthenticator_local_image
+    container_name: dauthenticator_local_server
+    depends_on:
+      - postgres
+    volumes:
+      - .:/app:z
+    env_file:
+      - ./.env
+    ports:
+      - "8011:8000"
+    command: start_server
+
+  postgres:
+    image: releases.registry.docker.kaisens.fr/kaisensdata/devops/docker-images/postgresql:14.5-1
+    container_name: dauthenticator_local_postgres
+    volumes:
+      - dauthenticator_local_postgres_data:/var/lib/postgresql/data:Z
+      - dauthenticator_local_postgres_data_backups:/backups:z
+    env_file:
+      - ./.env

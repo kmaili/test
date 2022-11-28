@@ -1,0 +1,65 @@
+# General
+# ------------------------------------------------------------------------------
+# DJANGO_READ_DOT_ENV_FILE=True
+DJANGO_SETTINGS_MODULE=config.settings.production
+
+# Security
+# ------------------------------------------------------------------------------
+DJANGO_SECURE_SSL_REDIRECT=False
+
+# Email
+# ------------------------------------------------------------------------------
+JANGO_ACCOUNT_ALLOW_REGISTRATION=True
+EMAIL_PORT=5025
+EMAIL_USE_TLS=True
+EMAIL_USE_SSL=False
+## Secure Cookies
+SECURE_SSL_REDIRECT=True
+SECURE_SSL_REDIRECT=True
+
+# Gunicorn
+# ------------------------------------------------------------------------------
+WEB_CONCURRENCY=4
+
+# CORS_ALLOWED_ORIGINS
+# -------------------------------------------------------------------------------
+CORS_ALLOWED_ORIGINS=http://localhost:4200,http://127.0.0.1:4200,https://shield.kaisens.fr,http://shield.kaisens.fr
+
+# take-back system
+NB_DAY=7
+
+
+# KAFKA 
+# ------------------------------------------------------------------------------
+GROUPE_ID=crawlserver
+
+# AIRFLOW TO CRAWLSERVER
+# ------------------------------------------------------------------------------
+TOPIC_PROFILE_ADDED="profile_added"
+TOPIC_PROFILE_CRAWLED="profile_crawled"
+TOPIC_FRIEND_CRAWLED="friend_crawled"
+TOPIC_PUBLICATION_CRAWLED="publication_crawled"
+TOPIC_COMMENT_CRAWLED="comment_crawled"
+TOPIC_ADD_PUBLICATION_JOB="add_publication_job"
+TOPIC_ADD_COMMENT_JOB="add_comment_job"
+TOPIC_ADD_PUBLICATION_FAILED_JOB="publication_failed_crawled"
+
+# CRAWLSERVER TO MLENGINE
+# ------------------------------------------------------------------------------
+TOPIC_PROFILE_CRAWLED_ML="profile_crawled_ml_to_resolve6"
+TOPIC_PROFILE_CRAWLED_UPDATED_ML="profile_crawled_updated_ml_to_resolve8"
+TOPIC_PUBLICATION_CRAWLED_ML="publication_crawled_ml_to_resolve_3"
+TOPIC_PUBLICATION_CRAWLED_UPDATED_ML="publication_updated_ml_to_resolve_4"
+TOPIC_COMMENT_CRAWLED_ML="comment_crawled_ml_to_resolve4"
+TOPIC_COMMENT_CRAWLED_UPDATED_ML="comment_updated_ml_to_resolve5"
+
+# MONGODB 
+# ------------------------------------------------------------------------------
+MONGO_PORT=27017
+MONGO_DB=admin
+# MongoDB
+# ------------------------------------------------------------------------------
+MONGODB_DATABASE=admin
+# MongoGUI
+# ------------------------------------------------------------------------------
+ME_CONFIG_MONGODB_AUTH_DATABASE=admin

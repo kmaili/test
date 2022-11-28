@@ -1,0 +1,53 @@
+version: '3.5'
+
+networks:
+  public:
+    external: true
+  dauthenticator:
+    driver: overlay
+    attachable: true
+    name: dauthenticator
+
+services:
+  django:
+    image: ${DOCKER_REGISTRY_HOSTNAME}/${DAUTHENTIFICATOR_IMAGE_PATH}:${DAUTHENTIFICATOR_IMAGE_TAG}
+    networks:
+      - public
+      - dauthenticator
+    depends_on:
+      - postgres
+    volumes:
+      - ${DAUTHENTIFICATOR_VOLUMES_DIR}/server_logs:/app/logs:Z
+    env_file:
+      - ${DAUTHENTIFICATOR_VOLUMES_DIR}/config/.params
+    command: start_server
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: '1'
+          memory: 256M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.dauthenticator.service=dauthenticator"
+        - "traefik.http.routers.dauthenticator.entrypoints=websecure"
+        - "traefik.http.routers.dauthenticator.rule=Host(`dauthenticator.dev.kaisens.fr`)"
+        - "traefik.http.services.dauthenticator.loadbalancer.server.port=80"
+
+    postgres:
+      image: releases.registry.docker.kaisens.fr/kaisensdata/devops/docker-images/postgresql:14.5-1
+      env_file:
+        - ${DAUTHENTIFICATOR_VOLUMES_DIR}/config/.params
+      volumes:
+        - ${DAUTHENTIFICATOR_VOLUMES_DIR}/data:/data/db
+        - ${DAUTHENTIFICATOR_VOLUMES_DIR}/backups:/backups:Z
+      networks:
+        - dauthenticator
+      healthcheck:
+        test: echo 'db.runCommand("ping").ok' | mongo mongo:27017/test --quiet
+        interval: 10s
+        timeout: 10s
+        retries: 5
+        start_period: 40s
+      restart: always

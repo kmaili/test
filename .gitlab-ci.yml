@@ -1,59 +1,6 @@
-stages:
-  - publish
-  - deploy
-  - lint
-
-variables:
-  DOCKER_TLS_CERTDIR: "/certs"
-
-publish:
-  stage: publish
-  image: registry.kaisens.fr/docker-compose:latest
-  services:
-    - docker:19.03.12-dind
-  before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build -t $CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA -t $CI_REGISTRY_IMAGE/web:latest --build-arg DATABASE_URL=$DATABASE_URL --build-arg DJANGO_SECRET_KEY=$DJANGO_SECRET_KEY --build-arg EMAIL_HOST_PASSWORD=$EMAIL_HOST_PASSWORD --build-arg POSTGRES_PASSWORD=$POSTGRES_PASSWORD -f ./compose/production/django/Dockerfile .
-    - docker build -t $CI_REGISTRY_IMAGE/nginx:$CI_COMMIT_SHORT_SHA -t $CI_REGISTRY_IMAGE/nginx:latest -f ./compose/production/nginx/Dockerfile .
-    - docker build -t $CI_REGISTRY_IMAGE/postgres:$CI_COMMIT_SHORT_SHA -t $CI_REGISTRY_IMAGE/postgres:latest --build-arg POSTGRES_PASSWORD=$POSTGRES_PASSWORD -f ./compose/production/postgres/Dockerfile .
-  script:
-     - docker push $CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA
-     - docker push $CI_REGISTRY_IMAGE/web:latest
-     - docker push $CI_REGISTRY_IMAGE/nginx:$CI_COMMIT_SHORT_SHA
-     - docker push $CI_REGISTRY_IMAGE/nginx:latest
-     - docker push $CI_REGISTRY_IMAGE/postgres:$CI_COMMIT_SHORT_SHA
-     - docker push $CI_REGISTRY_IMAGE/postgres:latest
-  only:
-    - master
-  tags:
-    - docker
-
-deploy:
-  image: registry.kaisens.fr/docker-compose:latest
-  stage: deploy
-  variables:
-    DOCKER_HOST: "ssh://root@$DEPLOY_SERVER_IP"
-  tags:
-    - docker
-  before_script:
-    - mkdir -p ~/.ssh
-    - echo "$DEPLOY_SERVER_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
-    - chmod 600 ~/.ssh/id_rsa
-    - eval "$(ssh-agent -s)"
-    - ssh-add ~/.ssh/id_rsa
-    - ssh-keyscan -H $DEPLOY_SERVER_IP >> ~/.ssh/known_hosts
-  script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker-compose -f production.yml up -d --build
-  only:
-    - master
-
-flake8:
-  stage: lint
-  image: python:3.9-alpine
-  before_script:
-    - pip install -q flake8
-  script:
-    - flake8
-  only:
-    - Feature#3678
+include:
+  - project: kaisensdata/devops/cicd-templates
+    ref: 0.1.0
+    file:
+      - templates/django-app.yml
+      - addons/deploy_app.yml

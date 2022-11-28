@@ -340,3 +340,4 @@ webserver/media/
 
 
 .ipython/
+.env

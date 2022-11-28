@@ -1,0 +1,3 @@
+-r local.in
+twitter_driver==0.9.9
+instaDriver==0.4.8

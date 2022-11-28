@@ -1,8 +1,0 @@
-# PostgreSQL
-# ------------------------------------------------------------------------------
-POSTGRES_HOST=postgres
-POSTGRES_PORT=5432
-POSTGRES_DB=dauthenticator
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=EfBonhyKjIqZZfVKtPSK7NtQ40HcQrepO8uHo74uirVlwS4iQXEMhVzkAokLNVxE
-DATABASE_URL=postgres://postgres:EfBonhyKjIqZZfVKtPSK7NtQ40HcQrepO8uHo74uirVlwS4iQXEMhVzkAokLNVxE@postgres:5432/dauthenticator
