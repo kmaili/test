@@ -1,3 +1,3 @@
 -r local.in
-twitter_driver==0.9.13
-instaDriver==0.4.13
+twitter_driver==0.9.14
+instaDriver==0.4.14

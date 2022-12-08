@@ -16,6 +16,11 @@ django-crispy-forms==1.12.0  # https://github.com/django-crispy-forms/django-cri
 django-redis==5.0.0  # https://github.com/jazzband/django-redis
 django-import-export
 
+watchfiles
+watchgod==0.8.2  # https://github.com/samuelcolvin/watchgod
+celery==5.2.6  # pyup: < 6.0  # https://github.com/celery/celery
+django-celery-beat==2.2.1  # https://github.com/celery/django-celery-beat
+
 # Django REST Framework
 # ------------------------------------------------------------------------------
 djangorestframework==3.12.2  # https://github.com/encode/django-rest-framework
