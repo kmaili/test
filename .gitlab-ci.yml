@@ -19,12 +19,11 @@ job1:
     - eval "$(ssh-agent -s)"
     - ssh-add ~/.ssh/id_rsa
     - ssh-keyscan -H $DEPLOY_SERVER_IP >> ~/.ssh/known_hosts
-    # make sure to add remote public key in remote server authorized keys
   script:
     - docker ps || true
     - touch .env
     - cat .env.sample > .env
-    - docker login -u $NEW_REGISTRY_USER -p $NEW_REGISTRY_PASSWORD $NEW_REGISTRY_SERVER
+    - docker login -u $REGISTRY_USER -p $REGISTRY_PASSWORD $REGISTRY_SERVER
     - docker-compose up -d --build
   only:
     - develop
