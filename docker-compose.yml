@@ -1,8 +1,8 @@
 version: '3.4'
 
 volumes:
-  dauthenticator_prod_postgres_data: {}
-  dauthenticator_prod_postgres_data_backups: {}
+  dauthenticator_local_postgres_data: {}
+  dauthenticator_local_postgres_data_backups: {}
 
 services:
   django:
@@ -12,8 +12,8 @@ services:
       dockerfile: ./Dockerfile
       args:
         BUILD_ENVIRONMENT: "local"
-    image: dauthenticator_prod_image
-    container_name: dauthenticator_prod_server
+    image: dauthenticator_${BUILD_ENVIRONMENT}_image
+    container_name: dauthenticator_${BUILD_ENVIRONMENT}_server
     depends_on:
       - postgres
     volumes:
@@ -21,16 +21,16 @@ services:
     env_file:
       - ./.env
     ports:
-      - "8011:8000"
+      - "8045:8000"
     command: start_server
     restart: always
 
   postgres:
     image: releases.registry.docker.kaisens.fr/kaisensdata/devops/docker-images/postgresql:14.5-1
-    container_name: dauthenticator_prod_postgres
+    container_name: dauthenticator_${BUILD_ENVIRONMENT}_postgres
     volumes:
-      - dauthenticator_prod_postgres_data:/var/lib/postgresql/data:Z
-      - dauthenticator_prod_postgres_data_backups:/backups:z
+      - dauthenticator_local_postgres_data:/var/lib/postgresql/data:Z
+      - dauthenticator_local_postgres_data_backups:/backups:z
     env_file:
       - ./.env
     ports:
@@ -39,12 +39,12 @@ services:
 
   redis:
     image: redis:6
-    container_name: adauthenticator_prod_redis
+    container_name: adauthenticator_${BUILD_ENVIRONMENT}_redis
 
   celeryworker:
     <<: *django
-    image: dauthenticator_prod_celeryworker
-    container_name: dauthenticator_prod_celeryworker
+    image: dauthenticator_${BUILD_ENVIRONMENT}_celeryworker
+    container_name: dauthenticator_${BUILD_ENVIRONMENT}_celeryworker
     depends_on:
       - redis
       - postgres
@@ -57,8 +57,8 @@ services:
 
   celerybeat:
     <<: *django
-    image: dauthenticator_prod_celerybeat
-    container_name: dauthenticator_prod_celerybeat
+    image: dauthenticator_${BUILD_ENVIRONMENT}_celerybeat
+    container_name: dauthenticator_${BUILD_ENVIRONMENT}_celerybeat
     depends_on:
       - redis
       - postgres

@@ -10,7 +10,7 @@ def account_state_update(self, *args):
     from dauthenticator.core.models import AccountAuthentification, AirflowDAGRUN
     current_date = datetime.now().astimezone(pytz.timezone('Europe/Paris'))
     all_accounts = AccountAuthentification.objects.all().order_by("cookie", "cookie_real_end")
-    #print("all account \n",len(all_accounts),'______')
+    print("all account \n",len(all_accounts),'______')
     for account in all_accounts:
         # 1. sort all_accounts in order no cookie and with cookie
         # 2. If there is an account or session available, break

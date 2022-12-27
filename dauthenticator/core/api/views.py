@@ -92,10 +92,13 @@ class AccountAuthentificationViewSet(GenericViewSet):
     media_index = {
         "1": "twitter",
         "2": "instagram",
+        "3": "facebook",
         1: "twitter",
         2: "instagram",
+        3: "facebook",
         "twitter": "twitter",
-        "instagram": "instagram"
+        "instagram": "instagram",
+        "facebook":"facebook"
     }
 
     @action(detail=False, methods=['POST'])
@@ -120,7 +123,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
         for account in all_accounts:
             # 1. sort all_accounts in order no cookie and with cookie
             # 2. If there is an account or session available, break
-            available, should_login = self.is_account_available(account, current_date)
+            available, should_login = self.is_account_available(account, current_date,media_name)
             all_accounts_situations.append({"account": {"user_id": account.user_id, "login": account.login, "password": account.password, "ip": account.ip, "media": self.media_index[account.media], "cookie": account.cookie or "", "cookie_start": account.cookie_start.strftime("%Y-%m-%d %H:%M:%S") if account.cookie_start else "", "cookie_expected_end": account.cookie_expected_end.strftime("%Y-%m-%d %H:%M:%S") if account.cookie_expected_end else "", "cookie_real_end": account.cookie_real_end.strftime("%Y-%m-%d %H:%M:%S") if account.cookie_real_end else "1980-01-01 00:00:00.954774+00:00", "modified_at": account.modified_at}, "available": available, "should_login": should_login})  # noqa E501
         accounts_available = list(filter(lambda account: account["available"], all_accounts_situations))
         # if there are no accounts available, just tell the Scheduler that there are no accounts
@@ -205,6 +208,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
         accounts_selected = accounts_selected[:nb_jobs]
         accounts_selected.sort(key=lambda account: len(AirflowDAGRUN.objects.filter(session=AccountAuthentification.objects.get(user_id=account["account"]["user_id"]))))  # noqa E501
         for i in range(len(accounts_selected)):
+            #print('\n -----------------', accounts_selected[i]["account"]["cookie"],'------------\n')
             accounts_selected[i]["account"]["cookie"] = json.loads(accounts_selected[i]["account"]["cookie"])
         return accounts_selected
 
@@ -247,7 +251,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
             print(f"['ERROR'] : selenium hub error => {e}")
             return
 
-    def is_account_available(self, account, current_date):
+    def is_account_available(self, account, current_date, media_name):
         """To verify is this account available now
 
         Args:
@@ -258,6 +262,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
             _Tuple(Boolean, Boolean)_: (Is this account available, Should have a login or not)
         """
         # If cookie is None, this account has no session
+        print("media name",media_name,"-------------------")
         cookie = account.cookie
         cookie_real_end = account.cookie_real_end
         cookie_expected_end = account.cookie_expected_end
@@ -270,8 +275,22 @@ class AccountAuthentificationViewSet(GenericViewSet):
         if nb_nodes == 0:
             print(f"There is no node selenium available in cluster {ip}")
             return (False, False)
+
+        if media_name=="facebook":
+            if not cookie: 
+                print(f"There is no cookies for this account {login}")
+                return  (False, False)
+            # If this account is never used
+            last_use_date = cookie_real_end
+            if not last_use_date:
+                # this account has never been used, so login
+                print(f"{account.user_id} has never been used or has stayed empty for three hours, so login if necessary")  # noqa E501
+                return (True, False)
+            next_use_date = last_use_date + timedelta(hours=3)
+            return (current_date >= next_use_date, False)
+
         # If the field cookie is empty in table
-        if not cookie:
+        if not cookie and media_name != "facebook":
             # If this account is never used
             last_use_date = cookie_real_end
             if not last_use_date:
@@ -280,6 +299,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
                 return (True, True)
             next_use_date = last_use_date + timedelta(hours=3)
             return (current_date >= next_use_date, True)
+
         # check if this session is runing
         cookie_end_date = cookie_expected_end
         dag_runs = AirflowDAGRUN.objects.filter(session=account)
@@ -297,8 +317,11 @@ class AccountAuthentificationViewSet(GenericViewSet):
             else:
                 session_real_end = datetime.now()
                 # update table AccountAuthentification
+                new_cookies = ""
+                if media_name=="facebook":
+                    new_cookies = cookie
                 AccountAuthentification.objects.filter(user_id=account.user_id).update(
-                    cookie="",
+                    cookie=new_cookies,
                     cookie_real_end=session_real_end,
                     cookie_valid=False,
                     account_active=False,
@@ -353,12 +376,13 @@ class AccountAuthentificationViewSet(GenericViewSet):
             Response: Status code
         """
         media_name = media_name.data
-        media, login, password, user_id, ip = media_name["media"], media_name["login"], media_name["password"], media_name["user_id"], media_name["ip"]  # noqa E501
+        media, login, password, user_id, ip, cookie = media_name["media"], media_name["login"], media_name["password"], media_name["user_id"], media_name["ip"],  media_name["cookie"]  # noqa E501
         new_account = AccountAuthentification(login=login,
                                               password=password,
                                               user_id=user_id,
                                               media=media,
-                                              ip=ip)
+                                              ip=ip,
+                                              cookie=cookie)
         new_account.save()
         output_serializer = AccountAuthentificationSerializer(new_account)
         return Response(status=status.HTTP_200_OK, data=output_serializer.data)

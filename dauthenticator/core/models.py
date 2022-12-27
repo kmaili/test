@@ -10,7 +10,7 @@ class AccountAuthentification(models.Model):
     MEDIA_CHOICES = (
         ('twitter', 1),
         ('instagram', 2),
-        ('tiktok', 3)
+        ('facebook', 3)
     )
     login = models.EmailField(max_length=256)
     password = models.CharField(max_length=250)
