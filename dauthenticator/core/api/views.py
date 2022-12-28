@@ -262,7 +262,6 @@ class AccountAuthentificationViewSet(GenericViewSet):
             _Tuple(Boolean, Boolean)_: (Is this account available, Should have a login or not)
         """
         # If cookie is None, this account has no session
-        print("media name",media_name,"-------------------")
         cookie = account.cookie
         cookie_real_end = account.cookie_real_end
         cookie_expected_end = account.cookie_expected_end
@@ -275,13 +274,13 @@ class AccountAuthentificationViewSet(GenericViewSet):
         if nb_nodes == 0:
             print(f"There is no node selenium available in cluster {ip}")
             return (False, False)
-
+        
+        last_use_date = cookie_real_end
         if media_name=="facebook":
             if not cookie: 
                 print(f"There is no cookies for this account {login}")
                 return  (False, False)
             # If this account is never used
-            last_use_date = cookie_real_end
             if not last_use_date:
                 # this account has never been used, so login
                 print(f"{account.user_id} has never been used or has stayed empty for three hours, so login if necessary")  # noqa E501
@@ -290,15 +289,21 @@ class AccountAuthentificationViewSet(GenericViewSet):
             return (current_date >= next_use_date, False)
 
         # If the field cookie is empty in table
+        print("next_use_date",next_use_date,"-------------------")
         if not cookie and media_name != "facebook":
             # If this account is never used
-            last_use_date = cookie_real_end
             if not last_use_date:
                 # this account has never been used, so login
                 print(f"{account.user_id} has never been used or has stayed empty for three hours, so login if necessary")  # noqa E501
                 return (True, True)
             next_use_date = last_use_date + timedelta(hours=3)
             return (current_date >= next_use_date, True)
+        
+
+        elif next_use_date != None:
+            #print(next_use_date,"___________________________")
+            next_use_date = last_use_date + timedelta(hours=3)
+            return (current_date >= next_use_date, False)
 
         # check if this session is runing
         cookie_end_date = cookie_expected_end

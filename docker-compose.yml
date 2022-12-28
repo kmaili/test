@@ -37,33 +37,33 @@ services:
       - "${POSTGRES_PORT}:5432"
     restart: always
 
-  redis:
-    image: redis:6
-    container_name: adauthenticator_${BUILD_ENVIRONMENT}_redis
+  # redis:
+  #   image: redis:6
+  #   container_name: adauthenticator_${BUILD_ENVIRONMENT}_redis
 
-  celeryworker:
-    <<: *django
-    image: dauthenticator_${BUILD_ENVIRONMENT}_celeryworker
-    container_name: dauthenticator_${BUILD_ENVIRONMENT}_celeryworker
-    depends_on:
-      - redis
-      - postgres
-    env_file:
-      - ./.env
-    ports: []
-    command: start_worker
-    restart: always
+  # celeryworker:
+  #   <<: *django
+  #   image: dauthenticator_${BUILD_ENVIRONMENT}_celeryworker
+  #   container_name: dauthenticator_${BUILD_ENVIRONMENT}_celeryworker
+  #   depends_on:
+  #     - redis
+  #     - postgres
+  #   env_file:
+  #     - ./.env
+  #   ports: []
+  #   command: start_worker
+  #   restart: always
     
 
-  celerybeat:
-    <<: *django
-    image: dauthenticator_${BUILD_ENVIRONMENT}_celerybeat
-    container_name: dauthenticator_${BUILD_ENVIRONMENT}_celerybeat
-    depends_on:
-      - redis
-      - postgres
-    ports: []
-    env_file:
-      - ./.env
-    command: start_beat
-    restart: always
+  # celerybeat:
+  #   <<: *django
+  #   image: dauthenticator_${BUILD_ENVIRONMENT}_celerybeat
+  #   container_name: dauthenticator_${BUILD_ENVIRONMENT}_celerybeat
+  #   depends_on:
+  #     - redis
+  #     - postgres
+  #   ports: []
+  #   env_file:
+  #     - ./.env
+  #   command: start_beat
+  #   restart: always
