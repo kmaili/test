@@ -10,8 +10,9 @@ from rest_framework.viewsets import GenericViewSet
 from rest_framework.exceptions import APIException
 from dauthenticator.core.models import AccountAuthentification, AirflowDAGRUN
 from dauthenticator.core.api.serializers import AccountAuthentificationSerializer, AccountAuthSerializer
-from twitter_driver.drivers import TwitterDriver
-from instaDriver.drivers import InstaDriver
+# from twitter_driver.drivers import TwitterDriver
+# from instaDriver.drivers import InstaDriver
+from importlib import import_module
 
 
 
@@ -20,75 +21,56 @@ from instaDriver.drivers import InstaDriver
 
 # I. obtenir les drivers en login
 # II. créer un système pour que pendant 3 heures les drivers (sessions) soient vifs
-def twitter_login(accounts):
-    """
-    twitter login
-    """
+
+
+def load_class(dotpath: str):
+    """load function in module.  function is right-most segment"""
+    module_, func = dotpath.rsplit(".", maxsplit=1)
+    print(module_)
+    m = import_module(module_)
+    return getattr(m, func)
+
+def driver_login(accounts, media_name):
+
     cookies = []
     drivers = []
+    driver_class = {
+        "twitter": load_class("twitter_driver.drivers.TwitterDriver"),
+        "instagram": load_class("instaDriver.drivers.InstaDriver")
+    }
+    #print('\n',driver_class[media_name],"----------------")
     for account in accounts:
         account_info = account["account"]
         username = account_info["user_id"]
         login = account_info["login"]
         password = account_info["password"]
         remote_url = account_info["ip"]
-        twitter = TwitterDriver(
+        driver = driver_class[media_name](
             driver_language='en-EN',
             credentials_login=login,
             credentials_password=password,
             credentials_username=username,
-            remote_url=remote_url
+            remote_url=remote_url,
+            headless = False
         )
-        if twitter.login():
-            cookies.append(twitter.get_login_cookies())
-            twitter.close()
+        if driver.login():
+            cookies.append(driver.get_login_cookies())
+            driver.close()
         else:
             cookies.append("Login Failed")
-            twitter.close()
-        drivers.append(twitter)
+            driver.close()
+        drivers.append(driver)
     return cookies, drivers
-
-
-def ins_login(accounts):
-    """
-    instagram login
-    """
-    cookies = []
-    drivers = []
-    for account in accounts:
-        account_info = account["account"]
-        username = account_info["user_id"]
-        login = account_info["login"]
-        password = account_info["password"]
-        remote_url = account_info["ip"]
-        print('login = ', login,'\n password =',password,'\n username =',username, '\n remote url = ',remote_url)
-
-        ins = InstaDriver(
-            driver_language='en-EN',
-            credentials_login=login,
-            credentials_password=password,
-            credentials_username=username,
-            remote_url=remote_url
-        )
-        if ins.login():
-            cookies.append(ins.get_login_cookies())
-            ins.close()
-        else:
-            cookies.append("Login Failed")
-            ins.close()
-        drivers.append(ins)
-    return cookies, drivers
-
 
 class AccountAuthentificationViewSet(GenericViewSet):
 
     serializer_class = AccountAuthentificationSerializer
     queryset = AccountAuthentification.objects.all()
     regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-    login_func = {
-        "twitter": lambda accounts: twitter_login(accounts),
-        "instagram": lambda accounts: ins_login(accounts)
-    }
+    # login_func = {
+    #     "twitter": lambda accounts: twitter_login(accounts),
+    #     "instagram": lambda accounts: ins_login(accounts)
+    # }
     media_index = {
         "1": "twitter",
         "2": "instagram",
@@ -111,8 +93,6 @@ class AccountAuthentificationViewSet(GenericViewSet):
         Returns:
             _Dict_: accounts or session available
         """
-        #print(':::::::::::::::::::::::::::::::::::', request.data.get('media', None))
-        #print(':::::::::::::::::::::::::::::::::::', request.data["media"])
         media_name = request.data["media"]  # which social media
         nb_jobs = int(request.data["nb_jobs"])
         current_date = datetime.now().astimezone(pytz.timezone('Europe/Paris'))
@@ -164,9 +144,8 @@ class AccountAuthentificationViewSet(GenericViewSet):
                 accounts_to_login = accounts_to_login[:nb_jobs]
             # login according to media
             print("\n-------------- login according to media ------------\n")
-            login_function = self.login_func[media_name]
-            print("accounts_to_login = ", accounts_to_login)
-            cookies, drivers = login_function(accounts_to_login)
+            #print("accounts_to_login = ", accounts_to_login)
+            cookies, drivers = driver_login(accounts_to_login, media_name)
             assert len(cookies) == len(accounts_to_login)
             # filter login failed
             # keep cookies which have login success
@@ -206,6 +185,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
             accounts_selected.extend(accounts_in_using_once)
         # Json parser cookie for accounts:
         accounts_selected = accounts_selected[:nb_jobs]
+        # accounts_selected.sort(key=lambda account: len(AirflowDAGRUN.objects.filter(session=AccountAuthentification.objects.get(user_id=account["account"]["user_id"]))))  # noqa E501
         accounts_selected.sort(key=lambda account: len(AirflowDAGRUN.objects.filter(session=AccountAuthentification.objects.get(user_id=account["account"]["user_id"]))))  # noqa E501
         for i in range(len(accounts_selected)):
             #print('\n -----------------', accounts_selected[i]["account"]["cookie"],'------------\n')
@@ -289,7 +269,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
             return (current_date >= next_use_date, False)
 
         # If the field cookie is empty in table
-        print("next_use_date",next_use_date,"-------------------")
+        #print("next_use_date",next_use_date,"-------------------")
         if not cookie and media_name != "facebook":
             # If this account is never used
             if not last_use_date:
@@ -300,10 +280,11 @@ class AccountAuthentificationViewSet(GenericViewSet):
             return (current_date >= next_use_date, True)
         
 
-        elif next_use_date != None:
-            #print(next_use_date,"___________________________")
-            next_use_date = last_use_date + timedelta(hours=3)
-            return (current_date >= next_use_date, False)
+        # elif next_use_date != None:
+
+        #     #print(next_use_date,"___________________________")
+        #     next_use_date = last_use_date + timedelta(hours=3)
+        #     return (current_date >= next_use_date, False)
 
         # check if this session is runing
         cookie_end_date = cookie_expected_end
@@ -382,12 +363,22 @@ class AccountAuthentificationViewSet(GenericViewSet):
         """
         media_name = media_name.data
         media, login, password, user_id, ip, cookie = media_name["media"], media_name["login"], media_name["password"], media_name["user_id"], media_name["ip"],  media_name["cookie"]  # noqa E501
-        new_account = AccountAuthentification(login=login,
+        if media != 'facebook':
+            new_account = AccountAuthentification(login=login,
+                                              password=password,
+                                              user_id=user_id,
+                                              media=media,
+                                              ip=ip)
+        else :
+            new_account = AccountAuthentification(login=login,
                                               password=password,
                                               user_id=user_id,
                                               media=media,
                                               ip=ip,
-                                              cookie=cookie)
+                                              cookie=cookie,
+                                              cookie_valid=True,
+                                              account_active=True,
+                                              account_valid=True)
         new_account.save()
         output_serializer = AccountAuthentificationSerializer(new_account)
         return Response(status=status.HTTP_200_OK, data=output_serializer.data)
