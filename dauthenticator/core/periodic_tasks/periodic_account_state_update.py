@@ -46,3 +46,26 @@ class UpdateAccountStateTasks:
             name="account_state_update",
             task="config.tasks.account_state_update",
         )
+    def update_facebook_cookies_tasks(self):
+        """
+        to create crelery periodic task for each child account category
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        ------
+        None
+        """
+        schedule, _ = IntervalSchedule.objects.get_or_create(
+            every=14,
+            period=IntervalSchedule.DAYS,
+        )
+        print("task created------")
+        PeriodicTask.objects.get_or_create(
+            interval=schedule,  # we created this above.
+            enabled=True,
+            name="facebook_cookies_update",
+            task="config.tasks.facebook_cookies_update",
+        )

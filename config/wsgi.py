@@ -20,7 +20,7 @@ from pathlib import Path
 from django.core.wsgi import get_wsgi_application
 
 #from dauthenticator.core.periodic_tasks.periodic_account_state_update import UpdateAccountStateTasks
-
+from dauthenticator.core.periodic_tasks.periodic_account_state_update import UpdateAccountStateTasks
 # This allows easy placement of apps within the interior
 # dauthenticator directory.
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent
@@ -41,3 +41,5 @@ application = get_wsgi_application()
 # creation of periodic events
 # periodic_task = UpdateAccountStateTasks()
 # periodic_task.update_account_state_tasks()
+# periodic_task = UpdateAccountStateTasks()
+# periodic_task.update_facebook_cookies_tasks()

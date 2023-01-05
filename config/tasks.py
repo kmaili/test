@@ -2,7 +2,7 @@ from datetime import datetime
 from celery import shared_task
 
 import pytz
-
+from facebook_driver.drivers import FacebookDriver
 
 
 @shared_task(bind=True)
@@ -42,3 +42,32 @@ def account_state_update(self, *args):
                     )
                     print(f"{account.user_id} session has finished and it should stop for 3 hours")
 
+
+
+@shared_task(bind=True)
+def facebook_cookies_update(self, *args):
+    from dauthenticator.core.models import AccountAuthentification, AirflowDAGRUN
+    current_date = datetime.now().astimezone(pytz.timezone('Europe/Paris'))
+    all_accounts = AccountAuthentification.objects.get().order_by("cookie", "cookie_real_end")
+    print("all account \n",len(all_accounts),'______')
+    for account in all_accounts:
+        cookie_expected_end = account.cookie_expected_end
+        cookie = account.cookie
+        remote_url = account.ip
+
+        if cookie:
+            driver = FacebookDriver(
+                        driver_language='en-EN',
+                        remote_url=remote_url,
+                        headless = False,
+                        cookie=cookie
+                    )
+
+            new_cookies = driver.get_login_cookies()
+            
+            AccountAuthentification.objects.filter(user_id=account.user_id).update(
+                        cookie=new_cookies,
+                    )
+            driver.close()
+            print(f"cookies update for {account.user_id} ")
+            print("cookie",cookie)

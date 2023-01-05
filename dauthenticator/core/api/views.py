@@ -38,7 +38,6 @@ def driver_login(accounts, media_name):
         "twitter": load_class("twitter_driver.drivers.TwitterDriver"),
         "instagram": load_class("instaDriver.drivers.InstaDriver")
     }
-    #print('\n',driver_class[media_name],"----------------")
     for account in accounts:
         account_info = account["account"]
         username = account_info["user_id"]
@@ -61,6 +60,18 @@ def driver_login(accounts, media_name):
             driver.close()
         drivers.append(driver)
     return cookies, drivers
+
+def check_cookies(cookies):
+    expiry=0
+    cookies = json.loads(cookies)
+
+    for dic in cookies:
+       
+        if dic.get('name') == 'fr':
+            expiry = dic.get('expiry')
+            break
+    check = datetime.fromtimestamp(expiry).strftime("%m/%d/%Y") > datetime.now().strftime("%m/%d/%Y")
+    return check
 
 class AccountAuthentificationViewSet(GenericViewSet):
 
@@ -133,7 +144,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
         print("accounts_to_login = ", accounts_to_login)
 
         accounts_in_using_once = list(filter(lambda account: not account["should_login"], accounts_available))
-        print("accounts_in_using_once = ",accounts_in_using_once)
+#        print("accounts_in_using_once = ",accounts_in_using_once)
         accounts_selected = []
         if accounts_to_login:
             # We prefer those who haven't login
@@ -244,6 +255,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
         # If cookie is None, this account has no session
         cookie = account.cookie
         cookie_real_end = account.cookie_real_end
+        cookie_start = account.cookie_start
         cookie_expected_end = account.cookie_expected_end
         user_id = account.ip  # noqa F841
         login = account.login  # noqa F841
@@ -251,6 +263,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
         ip = account.ip
         # if selenium cluster is never available
         nb_nodes = self.get_node_available(ip)
+
         if nb_nodes == 0:
             print(f"There is no node selenium available in cluster {ip}")
             return (False, False)
@@ -260,17 +273,32 @@ class AccountAuthentificationViewSet(GenericViewSet):
             if not cookie: 
                 print(f"There is no cookies for this account {login}")
                 return  (False, False)
+
+            #cookies expiré
+            elif not check_cookies(cookie):
+                AccountAuthentification.objects.filter(user_id=account.user_id).update(
+                    cookie="",
+                    cookie_real_end=None,
+                    cookie_valid=False,
+                    account_active=False,
+                    account_valid=False,
+                )
+                print(f"The cookies for this account {account.user_id} are expired")  # noqa E501
+                return (False, False)
+                
             # If this account is never used
             if not last_use_date:
                 # this account has never been used, so login
                 print(f"{account.user_id} has never been used or has stayed empty for three hours, so login if necessary")  # noqa E501
                 return (True, False)
+            
+
             next_use_date = last_use_date + timedelta(hours=3)
             return (current_date >= next_use_date, False)
 
         # If the field cookie is empty in table
-        #print("next_use_date",next_use_date,"-------------------")
         if not cookie and media_name != "facebook":
+
             # If this account is never used
             if not last_use_date:
                 # this account has never been used, so login
@@ -279,12 +307,6 @@ class AccountAuthentificationViewSet(GenericViewSet):
             next_use_date = last_use_date + timedelta(hours=3)
             return (current_date >= next_use_date, True)
         
-
-        # elif next_use_date != None:
-
-        #     #print(next_use_date,"___________________________")
-        #     next_use_date = last_use_date + timedelta(hours=3)
-        #     return (current_date >= next_use_date, False)
 
         # check if this session is runing
         cookie_end_date = cookie_expected_end
@@ -301,6 +323,9 @@ class AccountAuthentificationViewSet(GenericViewSet):
                 # wait for crawl terminated
                 print(f"{account.user_id} is in using, so don't stop it and never use it")
             else:
+                if cookie_real_end > cookie_start and  current_date >= cookie_real_end + timedelta(hours=3) :
+                    return (True, False)
+                    
                 session_real_end = datetime.now()
                 # update table AccountAuthentification
                 new_cookies = ""

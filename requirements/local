@@ -35,4 +35,4 @@ pytest-django==4.4.0  # https://github.com/pytest-dev/pytest-django
 
 twitter_driver==0.9.14
 instaDriver==0.4.14
-facebook_driver==0.1.15
+facebook_driver==0.1.18
