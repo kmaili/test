@@ -36,7 +36,8 @@ def driver_login(accounts, media_name):
     drivers = []
     driver_class = {
         "twitter": load_class("twitter_driver.drivers.TwitterDriver"),
-        "instagram": load_class("instaDriver.drivers.InstaDriver")
+        "instagram": load_class("instaDriver.drivers.InstaDriver"),
+        "quora": load_class("quora_driver.drivers.QuoraDriver")
     }
     for account in accounts:
         account_info = account["account"]
@@ -86,12 +87,15 @@ class AccountAuthentificationViewSet(GenericViewSet):
         "1": "twitter",
         "2": "instagram",
         "3": "facebook",
+        "4": "quora",
         1: "twitter",
         2: "instagram",
         3: "facebook",
+        4: "quora",
         "twitter": "twitter",
         "instagram": "instagram",
-        "facebook":"facebook"
+        "facebook": "facebook",
+        "quora": "quora",
     }
 
     @action(detail=False, methods=['POST'])
@@ -157,6 +161,9 @@ class AccountAuthentificationViewSet(GenericViewSet):
             print("\n-------------- login according to media ------------\n")
             #print("accounts_to_login = ", accounts_to_login)
             cookies, drivers = driver_login(accounts_to_login, media_name)
+            print("----------------------------------------")
+            print(cookies)
+            print('-------------------------------------------')
             assert len(cookies) == len(accounts_to_login)
             # filter login failed
             # keep cookies which have login success
