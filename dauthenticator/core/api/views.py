@@ -62,16 +62,24 @@ def driver_login(accounts, media_name):
         drivers.append(driver)
     return cookies, drivers
 
-def check_cookies(cookies):
+def check_cookies(cookies,media_name):
     expiry=0
     cookies = json.loads(cookies)
 
+    dict_name = {
+        "instagram": 'ds_user_id',
+        "facebook": 'fr'
+    }
+    name = dict_name[media_name]
     for dic in cookies:
        
-        if dic.get('name') == 'fr':
+        if dic.get('name') == name:
             expiry = dic.get('expiry')
+            print(expiry,"------")
             break
-    check = datetime.fromtimestamp(expiry).strftime("%m/%d/%Y") > datetime.now().strftime("%m/%d/%Y")
+    check = datetime.fromtimestamp(expiry).strftime("%Y/%d/%m") > datetime.now().strftime("%Y/%d/%m")
+    print('------',check)
+
     return check
 
 class AccountAuthentificationViewSet(GenericViewSet):
@@ -161,9 +169,6 @@ class AccountAuthentificationViewSet(GenericViewSet):
             print("\n-------------- login according to media ------------\n")
             #print("accounts_to_login = ", accounts_to_login)
             cookies, drivers = driver_login(accounts_to_login, media_name)
-            print("----------------------------------------")
-            print(cookies)
-            print('-------------------------------------------')
             assert len(cookies) == len(accounts_to_login)
             # filter login failed
             # keep cookies which have login success
@@ -260,6 +265,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
             _Tuple(Boolean, Boolean)_: (Is this account available, Should have a login or not)
         """
         # If cookie is None, this account has no session
+        print("-------------------")
         cookie = account.cookie
         cookie_real_end = account.cookie_real_end
         cookie_start = account.cookie_start
@@ -276,13 +282,13 @@ class AccountAuthentificationViewSet(GenericViewSet):
             return (False, False)
         
         last_use_date = cookie_real_end
-        if media_name=="facebook":
+        if media_name in ["facebook","instagram"]:
             if not cookie: 
                 print(f"There is no cookies for this account {login}")
                 return  (False, False)
 
             #cookies expiré
-            elif not check_cookies(cookie):
+            elif not check_cookies(cookie,media_name):
                 AccountAuthentification.objects.filter(user_id=account.user_id).update(
                     cookie="",
                     cookie_real_end=None,
@@ -304,7 +310,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
             return (current_date >= next_use_date, False)
 
         # If the field cookie is empty in table
-        if not cookie and media_name != "facebook":
+        if not cookie and media_name not in ["facebook","instagram"]:
 
             # If this account is never used
             if not last_use_date:
@@ -336,7 +342,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
                 session_real_end = datetime.now()
                 # update table AccountAuthentification
                 new_cookies = ""
-                if media_name=="facebook":
+                if media_name  in ["facebook","instagram"]:
                     new_cookies = cookie
                 AccountAuthentification.objects.filter(user_id=account.user_id).update(
                     cookie=new_cookies,
@@ -395,7 +401,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
         """
         media_name = media_name.data
         media, login, password, user_id, ip, cookie = media_name["media"], media_name["login"], media_name["password"], media_name["user_id"], media_name["ip"],  media_name["cookie"]  # noqa E501
-        if media != 'facebook':
+        if media not in  ['facebook','instagram']:
             new_account = AccountAuthentification(login=login,
                                               password=password,
                                               user_id=user_id,

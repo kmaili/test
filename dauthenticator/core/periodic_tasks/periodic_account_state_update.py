@@ -59,7 +59,7 @@ class UpdateAccountStateTasks:
         None
         """
         schedule, _ = IntervalSchedule.objects.get_or_create(
-            every=14,
+            every=60,
             period=IntervalSchedule.DAYS,
         )
         print("task created------")

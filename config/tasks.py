@@ -1,9 +1,11 @@
 from datetime import datetime
 from celery import shared_task
-
+import json
 import pytz
 from facebook_driver.drivers import FacebookDriver
-
+from instaDriver.drivers import InstaDriver
+from importlib import import_module
+import time
 
 @shared_task(bind=True)
 def account_state_update(self, *args):
@@ -43,31 +45,54 @@ def account_state_update(self, *args):
                     print(f"{account.user_id} session has finished and it should stop for 3 hours")
 
 
+def load_class(dotpath: str):
+    """load function in module.  function is right-most segment"""
+    module_, func = dotpath.rsplit(".", maxsplit=1)
+    print(module_)
+    m = import_module(module_)
+    return getattr(m, func)
 
-@shared_task(bind=True)
-def facebook_cookies_update(self, *args):
-    from dauthenticator.core.models import AccountAuthentification, AirflowDAGRUN
-    current_date = datetime.now().astimezone(pytz.timezone('Europe/Paris'))
-    all_accounts = AccountAuthentification.objects.get().order_by("cookie", "cookie_real_end")
-    print("all account \n",len(all_accounts),'______')
-    for account in all_accounts:
-        cookie_expected_end = account.cookie_expected_end
-        cookie = account.cookie
-        remote_url = account.ip
+def driver_update_cookies(media_name, cookies, remote_url):
 
-        if cookie:
-            driver = FacebookDriver(
+    driver_class = {
+        "facebook": load_class("facebook_driver.drivers.FacebookDriver"),
+        "instagram": load_class("instaDriver.drivers.InstaDriver"),
+        # "twitter": load_class("twitter_driver.drivers.TwitterDriver"),
+        # "quora": load_class("quora_driver.drivers.QuoraDriver")
+    }
+    print('___________________________________')
+
+    driver = driver_class[media_name](
                         driver_language='en-EN',
                         remote_url=remote_url,
                         headless = False,
-                        cookie=cookie
+                        cookie=cookies)
+    time.sleep(4)
+
+    new_cookies = driver.get_login_cookies()
+    driver.close()
+    return new_cookies
+
+@shared_task(bind=True)
+def facebook_cookies_update(self, *args):
+
+    from dauthenticator.core.models import AccountAuthentification
+    all_accounts = AccountAuthentification.objects.filter(media__in =["facebook","instagram"]).order_by("cookie", "cookie_real_end")
+    print("all account \n",len(all_accounts))
+    for account in all_accounts:
+        media = account.media
+        #print("media name =-------", media)
+        cookie_expected_end = account.cookie_expected_end
+        cookies = json.loads(account.cookie)
+        print(cookies)
+        remote_url = account.ip
+
+        if cookies:
+            new_cookies = driver_update_cookies(media_name=media,cookies=cookies,remote_url=remote_url)
+
+            AccountAuthentification.objects.filter(user_id=account.user_id).update(
+                        cookie=json.dumps(new_cookies),modified_at=datetime.now().astimezone(pytz.timezone('Europe/Paris'))
                     )
 
-            new_cookies = driver.get_login_cookies()
-            
-            AccountAuthentification.objects.filter(user_id=account.user_id).update(
-                        cookie=new_cookies,
-                    )
-            driver.close()
             print(f"cookies update for {account.user_id} ")
-            print("cookie",cookie)
+            print("cookie",new_cookies)
