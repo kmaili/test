@@ -322,9 +322,9 @@ class AccountAuthentificationViewSet(GenericViewSet):
             if len(dag_runs) > 1 and hours < 1.5:
                 # wait for crawl terminated
                 print(f"{account.user_id} is in using, so don't stop it and never use it")
-            else:
-                if cookie_real_end > cookie_start and  current_date >= cookie_real_end + timedelta(hours=3) :
-                    return (True, False)
+            # else:
+            #     if cookie_real_end > cookie_start and  current_date >= cookie_real_end + timedelta(hours=3) :
+            #         return (True, False)
                     
                 session_real_end = datetime.now()
                 # update table AccountAuthentification
