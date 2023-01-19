@@ -70,7 +70,7 @@ def check_cookies(cookies):
         if dic.get('name') == 'fr':
             expiry = dic.get('expiry')
             break
-    check = datetime.fromtimestamp(expiry).strftime("%m/%d/%Y") > datetime.now().strftime("%m/%d/%Y")
+    check = datetime.fromtimestamp(expiry).strftime("%Y/%d/%m") > datetime.now().strftime("%Y/%d/%m")
     return check
 
 class AccountAuthentificationViewSet(GenericViewSet):
