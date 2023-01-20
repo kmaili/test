@@ -36,7 +36,6 @@ services:
     ports:
       - "${POSTGRES_PORT}:5432"
     restart: always
-
   # redis:
   #   image: redis:6
   #   container_name: adauthenticator_${BUILD_ENVIRONMENT}_redis
@@ -53,7 +52,7 @@ services:
   #   ports: []
   #   command: start_worker
   #   restart: always
-    
+
 
   # celerybeat:
   #   <<: *django
