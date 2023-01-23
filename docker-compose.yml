@@ -1,8 +1,8 @@
 version: '3.4'
 
 volumes:
-  dauthenticator_stage_postgres_data: {}
-  dauthenticator_stage_postgres_data_backups: {}
+  dauthenticator_staging_postgres_data: {}
+  dauthenticator_staging_postgres_data_backups: {}
 
 services:
   django:
@@ -12,8 +12,8 @@ services:
       dockerfile: ./Dockerfile
       args:
         BUILD_ENVIRONMENT: "local"
-    image: dauthenticator_${BUILD_ENVIRONMENT}_image
-    container_name: dauthenticator_${BUILD_ENVIRONMENT}_server
+    image: dauthenticator_staging_image
+    container_name: dauthenticator_staging_server
     depends_on:
       - postgres
     volumes:
@@ -27,43 +27,12 @@ services:
 
   postgres:
     image: releases.registry.docker.kaisens.fr/kaisensdata/devops/docker-images/postgresql:14.5-1
-    container_name: dauthenticator_${BUILD_ENVIRONMENT}_postgres
+    container_name: dauthenticator_stging_postgres
     volumes:
-      - dauthenticator_stage_postgres_data:/var/lib/postgresql/data:Z
-      - dauthenticator_stage_postgres_data_backups:/backups:z
+      - dauthenticator_staging_postgres_data:/var/lib/postgresql/data:Z
+      - dauthenticator_staging_postgres_data_backups:/backups:z
     env_file:
       - ./.env
     ports:
       - "${POSTGRES_PORT}:5432"
     restart: always
-
-  # redis:
-  #   image: redis:6
-  #   container_name: adauthenticator_${BUILD_ENVIRONMENT}_redis
-
-  # celeryworker:
-  #   <<: *django
-  #   image: dauthenticator_${BUILD_ENVIRONMENT}_celeryworker
-  #   container_name: dauthenticator_${BUILD_ENVIRONMENT}_celeryworker
-  #   depends_on:
-  #     - redis
-  #     - postgres
-  #   env_file:
-  #     - ./.env
-  #   ports: []
-  #   command: start_worker
-  #   restart: always
-    
-
-  # celerybeat:
-  #   <<: *django
-  #   image: dauthenticator_${BUILD_ENVIRONMENT}_celerybeat
-  #   container_name: dauthenticator_${BUILD_ENVIRONMENT}_celerybeat
-  #   depends_on:
-  #     - redis
-  #     - postgres
-  #   ports: []
-  #   env_file:
-  #     - ./.env
-  #   command: start_beat
-  #   restart: always
