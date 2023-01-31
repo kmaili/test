@@ -3,6 +3,8 @@ import re
 import json
 import pytz
 import requests
+from typing import List
+from django.core.exceptions import MultipleObjectsReturned, FieldDoesNotExist
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -10,27 +12,24 @@ from rest_framework.viewsets import GenericViewSet
 from rest_framework.exceptions import APIException
 from dauthenticator.core.models import AccountAuthentification, AirflowDAGRUN
 from dauthenticator.core.api.serializers import AccountAuthentificationSerializer, AccountAuthSerializer
-# from twitter_driver.drivers import TwitterDriver
-# from instaDriver.drivers import InstaDriver
-from importlib import import_module
-
-
-
+from ...utils.logging import Logger
+from ...utils.utils import load_class, check_cookies, get_node_available
+from ...utils import config
 # 3. Améliorer le code ici, une fonction générale pour tous les drivers login
 # 4. discuter avec Sun pour les commentaires twitter crawl
 
 # I. obtenir les drivers en login
 # II. créer un système pour que pendant 3 heures les drivers (sessions) soient vifs
 
+def driver_login(accounts:List[dict], media_name:str):
+    """Get all valid accounts and update info for all accounts
 
-def load_class(dotpath: str):
-    """load function in module.  function is right-most segment"""
-    module_, func = dotpath.rsplit(".", maxsplit=1)
-    print(module_)
-    m = import_module(module_)
-    return getattr(m, func)
-
-def driver_login(accounts, media_name):
+        Args:
+            accounts List of dict: accounts that need login
+            media_name str: name of the media
+        Returns:
+            cookies: list of login cookies for each account
+    """
 
     cookies = []
     drivers = []
@@ -41,56 +40,27 @@ def driver_login(accounts, media_name):
     }
     for account in accounts:
         account_info = account["account"]
-        username = account_info["user_id"]
-        login = account_info["login"]
-        password = account_info["password"]
-        remote_url = account_info["ip"]
+        
         driver = driver_class[media_name](
             driver_language='en-EN',
-            credentials_login=login,
-            credentials_password=password,
-            credentials_username=username,
-            remote_url=remote_url,
+            credentials_login=account_info["login"],
+            credentials_password=account_info["password"],
+            credentials_username=account_info["user_id"],
+            remote_url=account_info["ip"],
             headless = False
         )
-        if driver.login():
-            cookies.append(driver.get_login_cookies())
-            driver.close()
-        else:
-            cookies.append("Login Failed")
-            driver.close()
+        cookies.append(driver.get_login_cookies()) if driver.login() else cookies.append("Login Failed")
+        driver.close()
         drivers.append(driver)
-    return cookies, drivers
-
-def check_cookies(cookies,media_name):
-    expiry=0
-    cookies = json.loads(cookies)
-
-    dict_name = {
-        "instagram": 'ds_user_id',
-        "facebook": 'fr'
-    }
-    name = dict_name[media_name]
-    for dic in cookies:
-       
-        if dic.get('name') == name:
-            expiry = dic.get('expiry')
-            print(expiry,"------")
-            break
-    check = datetime.fromtimestamp(expiry).strftime("%Y/%d/%m") > datetime.now().strftime("%Y/%d/%m")
-    print('------',check)
-
-    return check
+    return cookies
 
 class AccountAuthentificationViewSet(GenericViewSet):
 
     serializer_class = AccountAuthentificationSerializer
     queryset = AccountAuthentification.objects.all()
     regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-    # login_func = {
-    #     "twitter": lambda accounts: twitter_login(accounts),
-    #     "instagram": lambda accounts: ins_login(accounts)
-    # }
+    logger = Logger(config).logger
+
     media_index = {
         "1": "twitter",
         "2": "instagram",
@@ -116,24 +86,29 @@ class AccountAuthentificationViewSet(GenericViewSet):
         Returns:
             _Dict_: accounts or session available
         """
+
         media_name = request.data["media"]  # which social media
         nb_jobs = int(request.data["nb_jobs"])
         current_date = datetime.now().astimezone(pytz.timezone('Europe/Paris'))
         # find all accounts of this media
         all_accounts = AccountAuthentification.objects.filter(media=media_name).order_by("cookie", "cookie_real_end")
-        #print("all account \n",len(all_accounts),'______')
+        self.logger.info(f'all account \n {len(all_accounts)}')
         all_accounts_situations = []
         for account in all_accounts:
             # 1. sort all_accounts in order no cookie and with cookie
             # 2. If there is an account or session available, break
-            available, should_login = self.is_account_available(account, current_date,media_name)
+            if media_name in ["facebook","instgram"]:
+                available, should_login = self.is_account_available_strategy2(account, current_date,media_name)
+            else :
+                available, should_login = self.is_account_available_strategy1(account, current_date,media_name)
+
             all_accounts_situations.append({"account": {"user_id": account.user_id, "login": account.login, "password": account.password, "ip": account.ip, "media": self.media_index[account.media], "cookie": account.cookie or "", "cookie_start": account.cookie_start.strftime("%Y-%m-%d %H:%M:%S") if account.cookie_start else "", "cookie_expected_end": account.cookie_expected_end.strftime("%Y-%m-%d %H:%M:%S") if account.cookie_expected_end else "", "cookie_real_end": account.cookie_real_end.strftime("%Y-%m-%d %H:%M:%S") if account.cookie_real_end else "1980-01-01 00:00:00.954774+00:00", "modified_at": account.modified_at}, "available": available, "should_login": should_login})  # noqa E501
         accounts_available = list(filter(lambda account: account["available"], all_accounts_situations))
         # if there are no accounts available, just tell the Scheduler that there are no accounts
-        print('\n account available = ',len(accounts_available))
+        self.logger.info(f'\n account available = {len(accounts_available)}')
 
         if not accounts_available:
-            print("There is no account available")
+            self.logger.info(f"There is no account available")
             return Response(status=status.HTTP_200_OK, data=[])
         # login and get cookies
         accounts_selected = self.get_cookies_by_login(accounts_available, nb_jobs, media_name)
@@ -151,12 +126,11 @@ class AccountAuthentificationViewSet(GenericViewSet):
             _List[Dict]_: Accounts to use by Scheduler
         """
 
-        print("\n ----- inside the function get_cookies_by_login -----\n")
+        #self.logger.info(f"\n ----- inside the function get_cookies_by_login -----\n")
         accounts_to_login = list(filter(lambda account: account["should_login"], accounts_available))
-        print("accounts_to_login = ", accounts_to_login)
+        self.logger.info(f"accounts_to_login = {accounts_to_login} ")
 
         accounts_in_using_once = list(filter(lambda account: not account["should_login"], accounts_available))
-#        print("accounts_in_using_once = ",accounts_in_using_once)
         accounts_selected = []
         if accounts_to_login:
             # We prefer those who haven't login
@@ -166,9 +140,8 @@ class AccountAuthentificationViewSet(GenericViewSet):
             if len(accounts_to_login) >= nb_jobs:
                 accounts_to_login = accounts_to_login[:nb_jobs]
             # login according to media
-            print("\n-------------- login according to media ------------\n")
-            #print("accounts_to_login = ", accounts_to_login)
-            cookies, drivers = driver_login(accounts_to_login, media_name)
+            self.logger.info(f"Number of accounts to log in = {len(accounts_to_login)} " )
+            cookies = driver_login(accounts_to_login, media_name)
             assert len(cookies) == len(accounts_to_login)
             # filter login failed
             # keep cookies which have login success
@@ -186,13 +159,18 @@ class AccountAuthentificationViewSet(GenericViewSet):
                     accounts_to_login[i]["account"]["cookie_expected_end"] = cookie_expected_end
                     accounts_logined.append(accounts_to_login[i])
                     user_id = accounts_to_login[i]["account"]["user_id"]
-                    AccountAuthentification.objects.filter(user_id=user_id).update(
-                        cookie=cookie, cookie_start=cookie_start,
-                        cookie_expected_end=cookie_expected_end,
-                        cookie_valid=True,
-                        account_active=True,
-                        account_valid=True
-                    )
+                    try:
+                        AccountAuthentification.objects.filter(user_id=user_id).update(
+                            cookie=cookie, cookie_start=cookie_start,
+                            cookie_expected_end=cookie_expected_end,
+                            cookie_valid=True,
+                            account_active=True,
+                            account_valid=True
+                        )
+                    except FieldDoesNotExist as e :
+                        self.logger.error(f"Field Does not exist {e}")
+                        pass
+
                 else:
                     user_id = accounts_to_login[i]["account"]["user_id"]
                     AccountAuthentification.objects.filter(user_id=user_id).update(
@@ -208,53 +186,83 @@ class AccountAuthentificationViewSet(GenericViewSet):
             accounts_selected.extend(accounts_in_using_once)
         # Json parser cookie for accounts:
         accounts_selected = accounts_selected[:nb_jobs]
-        # accounts_selected.sort(key=lambda account: len(AirflowDAGRUN.objects.filter(session=AccountAuthentification.objects.get(user_id=account["account"]["user_id"]))))  # noqa E501
-        accounts_selected.sort(key=lambda account: len(AirflowDAGRUN.objects.filter(session=AccountAuthentification.objects.get(user_id=account["account"]["user_id"]))))  # noqa E501
+        try:
+            accounts_selected.sort(key=lambda account: len(AirflowDAGRUN.objects.filter(session=AccountAuthentification.objects.get(user_id=account["account"]["user_id"]))))  # noqa E501
+        except MultipleObjectsReturned as e:
+            self.logger.error(f"Multiple Object returned {e}")
+            accounts_selected = []
+
         for i in range(len(accounts_selected)):
-            #print('\n -----------------', accounts_selected[i]["account"]["cookie"],'------------\n')
             accounts_selected[i]["account"]["cookie"] = json.loads(accounts_selected[i]["account"]["cookie"])
         return accounts_selected
 
-    def get_node_available(self, remote_url: str) -> int:
-        """
-            Get number of selenium grid node available
-    
-            Parameters:
-                remote_url (str): Selenium grid remote url
-    
-            Returns:
-                no_of_nodes_available (int): Number of nodes available in selenium grid  # noqa E501
-    
-        """
+    def update_account(self, user_id, cookie, session_real_end):
         try:
-            res = self.get_selenium_status(remote_url)
-            ready = res["value"]["ready"]
-            if ready:
-                nodes = res["value"]["nodes"]
-                nodes_available = [
-                    node for node in nodes if not node["slots"][0]["session"]
-                ]
-                no_of_nodes_available = len(nodes_available)
-                # print("Number of nodes available, ", no_of_nodes_available)
-                return no_of_nodes_available
+            AccountAuthentification.objects.filter(user_id=user_id).update(
+                        cookie=cookie,
+                        cookie_real_end=session_real_end,
+                        cookie_valid=False,
+                        account_active=False,
+                        account_valid=False,
+                    )
+
+        except  AccountAuthentification.DoesNotExist:
+            self.logger.info("Account not found")
+        except FieldDoesNotExist as e :
+            self.logger.error(f"Field Does not exist {e}")
+
+    def is_account_available_strategy1(self, account, current_date, media_name):
+        """To verify if an account is now available following the first strategy
+
+        Args:
+            account (_AccountAuthentification_): the Object of AccountAuthentification
+            current_date (_Datetime_): the date which Airflow Scanner Check Dauthenticator
+
+        Returns:
+            _Tuple(Boolean, Boolean)_: (Is this account available, Should have a login or not)
+        """
+        cookie = account.cookie
+        cookie_real_end = account.cookie_real_end
+        cookie_expected_end = account.cookie_expected_end
+        ip = account.ip
+
+        if get_node_available(self.logger, ip) == 0:
+            self.logger.info(f"There is no node selenium available in cluster {ip}")
+            return (False, False)
+        
+        last_use_date = cookie_real_end
+        if not cookie :
+
+            if not last_use_date:       # we are using this account for the first time
+                self.logger.info(f"{account.user_id} has never been used or has stayed empty for three hours, so login if necessary")  # noqa E501
+                return (True, True)
+            next_use_date = last_use_date + timedelta(hours=3)
+            return (current_date >= next_use_date, True)
+        dag_runs = AirflowDAGRUN.objects.filter(session=account)  # check if this session is runing
+        
+        if cookie_expected_end >= current_date:  # The session is in 3 hours
+            # check if there are already two DAG_Runs using this session
+            # if no, we can use this session, otherwise no
+            self.logger.info(f"{account.user_id} there are {len(dag_runs)} DAG_Runs using this session, ")
+            return (len(dag_runs) < 3, False)
+
+        else:  # The session has finished 3 hours
+            hours = (current_date - cookie_expected_end).seconds // 60 // 60
+            if len(dag_runs) > 1 and hours < 1.5:
+                # wait for crawl terminated
+                self.logger.info(f"{account.user_id} is in using, so don't stop it and never use it")
             else:
-                print("Selenium hub is not ready")
-                return 0
-        except Exception as e:
-            print(f"['ERROR'] : selenium hub error => {e}")
-            return 0
+            #     if cookie_real_end > cookie_start and  current_date >= cookie_real_end + timedelta(hours=3) :
+            #         return (True, False)
 
-    def get_selenium_status(self, remote_url: str):
-        url = f"{remote_url}/wd/hub/status"
-        headers = {"Content-Type": "application/json"}
-        try:
-            response = requests.request("GET", url, headers=headers)
-            return json.loads(response.text)
-        except Exception as e:
-            print(f"['ERROR'] : selenium hub error => {e}")
-            return
+                session_real_end = datetime.now()
+                # update table AccountAuthentification
+                self.update_account(account.user_id,"",session_real_end)
+                self.logger.info(f"{user_id} session has finished and it should stop for 3 hours")
+       
+            return (False, False)
 
-    def is_account_available(self, account, current_date, media_name):
+    def is_account_available_strategy2(self, account, current_date, media_name):
         """To verify is this account available now
 
         Args:
@@ -265,94 +273,48 @@ class AccountAuthentificationViewSet(GenericViewSet):
             _Tuple(Boolean, Boolean)_: (Is this account available, Should have a login or not)
         """
         # If cookie is None, this account has no session
-        print("-------------------")
         cookie = account.cookie
         cookie_real_end = account.cookie_real_end
-        cookie_start = account.cookie_start
         cookie_expected_end = account.cookie_expected_end
-        user_id = account.ip  # noqa F841
         login = account.login  # noqa F841
-        password = account.password  # noqa F841
-        ip = account.ip
-        # if selenium cluster is never available
-        nb_nodes = self.get_node_available(ip)
 
-        if nb_nodes == 0:
-            print(f"There is no node selenium available in cluster {ip}")
-            return (False, False)
-        
         last_use_date = cookie_real_end
-        if media_name in ["facebook","instagram"]:
-            if not cookie: 
-                print(f"There is no cookies for this account {login}")
-                return  (False, False)
 
-            #cookies expiré
-            elif not check_cookies(cookie,media_name):
-                AccountAuthentification.objects.filter(user_id=account.user_id).update(
-                    cookie="",
-                    cookie_real_end=None,
-                    cookie_valid=False,
-                    account_active=False,
-                    account_valid=False,
-                )
-                print(f"The cookies for this account {account.user_id} are expired")  # noqa E501
-                return (False, False)
-                
-            # If this account is never used
-            if not last_use_date:
-                # this account has never been used, so login
-                print(f"{account.user_id} has never been used or has stayed empty for three hours, so login if necessary")  # noqa E501
-                return (True, False)
-            
+        if not cookie: 
+            self.logger.info(f"There is no cookies for this account {login}")
+            return  (False, False)
 
-            next_use_date = last_use_date + timedelta(hours=3)
-            return (current_date >= next_use_date, False)
-
-        # If the field cookie is empty in table
-        if not cookie and media_name not in ["facebook","instagram"]:
-
-            # If this account is never used
-            if not last_use_date:
-                # this account has never been used, so login
-                print(f"{account.user_id} has never been used or has stayed empty for three hours, so login if necessary")  # noqa E501
-                return (True, True)
-            next_use_date = last_use_date + timedelta(hours=3)
-            return (current_date >= next_use_date, True)
+        elif not check_cookies(cookie,media_name):
+            self.update_account(account.user_id,"",None)
+            self.logger.info(f"The cookies for this account {account.user_id} are expired")  # noqa E501
+            return (False, False)
+                            
+        if not last_use_date: # If this account is never used
+            self.logger.info(f"{account.user_id} has never been used or has stayed empty for three hours")  # noqa E501
+            return (True, False)
         
-
         # check if this session is runing
-        cookie_end_date = cookie_expected_end
         dag_runs = AirflowDAGRUN.objects.filter(session=account)
-        if cookie_end_date >= current_date:
+        if len(dag_runs) == 0 and current_date >=  last_use_date + timedelta(hours=3) :
+            return (True, False)
+
+        if cookie_expected_end >= current_date:
             # The session is in 3 hours
             # check if there are already two DAG_Runs using this session
             # if no, we can use this session, otherwise no
-            print(f"{account.user_id} there are {len(dag_runs)} DAG_Runs using this session, ")
+            self.logger.info(f"{account.user_id} there are {len(dag_runs)} DAG_Runs using this session, ")
             return (len(dag_runs) < 3, False)
         else:  # The session has finished 3 hours
-            hours = (current_date - cookie_end_date).seconds // 60 // 60
+            hours = (current_date - cookie_expected_end).seconds // 60 // 60
             if len(dag_runs) > 1 and hours < 1.5:
-                # wait for crawl terminated
-                print(f"{account.user_id} is in using, so don't stop it and never use it")
+                # wait for crawl to complete
+                self.logger.info(f"{account.user_id} is in using, so don't stop it and never use it")
             else:
-                if cookie_real_end > cookie_start and  current_date >= cookie_real_end + timedelta(hours=3) :
-                    return (True, False)
+                self.update_account(account.user_id,cookie,datetime.now())
+                self.logger.info(f"{user_id} session has finished and it should stop for 3 hours")
                     
-                session_real_end = datetime.now()
-                # update table AccountAuthentification
-                new_cookies = ""
-                if media_name  in ["facebook","instagram"]:
-                    new_cookies = cookie
-                AccountAuthentification.objects.filter(user_id=account.user_id).update(
-                    cookie=new_cookies,
-                    cookie_real_end=session_real_end,
-                    cookie_valid=False,
-                    account_active=False,
-                    account_valid=False,
-                )
-                print(f"{account.user_id} session has finished and it should stop for 3 hours")
             return (False, False)
+
 
     @action(detail=False, methods=['POST'])
     def _cookie(self, media_name):
@@ -495,16 +457,21 @@ class AccountAuthentificationViewSet(GenericViewSet):
         user_id = username.data["user_id"]
         accounts = AccountAuthentification.objects.filter(user_id=user_id)
         if not accounts:
-            Response(status=status.HTTP_200_OK, data={})
+            return Response(status=status.HTTP_200_OK, data=[])
+
         cookie = accounts[0].cookie if accounts[0].cookie else ""
-        print("cookie : ", cookie)
+        self.logger.info(f"cookie : {cookie}")
         return Response(status=status.HTTP_200_OK, data=cookie)
 
     @action(detail=False, methods=['POST'])
     def get_cookie_end_time_by_account(self, username):
         user_id = username.data["user_id"]
         accounts = AccountAuthentification.objects.filter(user_id=user_id)
-        response = (accounts[0].cookie, accounts[0].cookie_end)
+        if not accounts :
+            return Response(status=status.HTTP_200_OK, data=[])
+        cookie = accounts[0].cookie if accounts[0].cookie else ""
+        cookie_real_end = accounts[0].cookie_real_end if accounts[0].cookie_real_end else ""
+        response = (cookie, cookie_real_end)
         return Response(status=status.HTTP_200_OK, data=response)
 
     @action(detail=False, methods=['POST'])
@@ -517,7 +484,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
     @action(detail=False, methods=["DELETE"])
     def delete_one(self, user_id):
         user_id = user_id.data["user_id"]
-        print("user_id : ", user_id)
+        self.logger.info(f"user_id :  {user_id}")
         try:
             AccountAuthentification.objects.filter(user_id=user_id).delete()
         except Exception as ex:
@@ -536,7 +503,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
     @action(detail=False, methods=["DELETE"])
     def delete_dag_run(self, data):
         dag_run_id = data.data["dag_run_id"]
-        print(dag_run_id)
+        self.logger.info("{dag_run_id}")
         try:
             account = AirflowDAGRUN.objects.filter(dag_run_id=dag_run_id)
             account.delete()
