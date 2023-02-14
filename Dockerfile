@@ -46,6 +46,7 @@ COPY --chown="${OPS_USER}":"${OPS_USER}" . "${APP_HOME}"
 # make ops_user owner of the WORKDIR directory as well.
 RUN chown "${OPS_USER}":"${OPS_USER}" "${APP_HOME}"
 
+
 USER "${OPS_USER}"
 
 WORKDIR "${APP_HOME}"

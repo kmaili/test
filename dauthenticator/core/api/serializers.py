@@ -1,7 +1,7 @@
 import re
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from dauthenticator.core.models import AccountAuthentification
+from dauthenticator.core.models import AccountAuthentification, Driver
 
 User = get_user_model()
 
@@ -78,4 +78,20 @@ class AccountChangeStatusSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AccountAuthentification
+        fields = "__all__"
+
+
+class DriverSerializer(serializers.ModelSerializer):
+
+    driver_id = serializers.CharField(max_length=128)
+    driver_name = serializers.CharField(max_length=256)
+    class_name = serializers.CharField(max_length=250)
+    import_package = serializers.CharField(max_length=250)
+    strategy = serializers.CharField(max_length=250)
+
+    def validate(self, attrs):
+        return attrs
+
+    class Meta:
+        model = Driver
         fields = "__all__"

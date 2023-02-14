@@ -11,7 +11,8 @@ class AccountAuthentification(models.Model):
         ('twitter', 1),
         ('instagram', 2),
         ('facebook', 3),
-        ('quora', 4)
+        ('quora', 4),
+        ('adoasis', 5)
     )
     login = models.EmailField(max_length=256)
     password = models.CharField(max_length=250)
@@ -28,9 +29,13 @@ class AccountAuthentification(models.Model):
     account_valid = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now_add=True)
-
+    class Meta:
+        constraints = [
+                models.UniqueConstraint(fields=['user_id', 'media'], name="user_id_media_unique")
+            ]
     def __str__(self):
         return f"[AccountsAuthentification={str(self.user_id)}]"
+
 
 
 class AirflowDAGRUN(models.Model):
@@ -42,3 +47,15 @@ class AirflowDAGRUN(models.Model):
 
     def __str__(self):
         return f"[AirflowDAGRUN={str(self.dag_run_id)}]"
+
+
+class Driver(models.Model):
+
+    driver_id = models.CharField(max_length=256)
+    driver_name = models.CharField(max_length=256)
+    class_name = models.CharField(max_length=256)
+    import_package = models.CharField(max_length=256)
+    strategy = models.CharField(max_length=256,default="strategy1")
+
+    def __str__(self):
+        return f"[Driver={str(self.driver_id)}]"
