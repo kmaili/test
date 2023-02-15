@@ -21,7 +21,7 @@ def driver_update_cookies(media_name:str, cookies, remote_url,driver_info):
                             remote_url=remote_url,
                             headless = False,
                             cookie=cookies)
-        if (type ( driver ) == bool) :
+        if (type ( driver._driver ) == bool) :
             return None
         
     except Exception as e :
