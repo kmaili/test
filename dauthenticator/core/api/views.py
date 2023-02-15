@@ -37,7 +37,8 @@ def driver_login(accounts, media_name):
     driver_class = {
         "twitter": load_class("twitter_driver.drivers.TwitterDriver"),
         "instagram": load_class("instaDriver.drivers.InstaDriver"),
-        "quora": load_class("quora_driver.drivers.QuoraDriver")
+        "quora": load_class("quora_driver.drivers.QuoraDriver"),
+        "adoasis": load_class("adoasis_driver.drivers.AdoasisDriver")
     }
     for account in accounts:
         account_info = account["account"]
@@ -78,8 +79,6 @@ def check_cookies(cookies,media_name):
             print(expiry,"------")
             break
     check = datetime.fromtimestamp(expiry).strftime("%Y/%d/%m") > datetime.now().strftime("%Y/%d/%m")
-    print('------',check)
-
     return check
 
 class AccountAuthentificationViewSet(GenericViewSet):
@@ -96,14 +95,17 @@ class AccountAuthentificationViewSet(GenericViewSet):
         "2": "instagram",
         "3": "facebook",
         "4": "quora",
+        "5": "adoasis",
         1: "twitter",
         2: "instagram",
         3: "facebook",
         4: "quora",
+        5: "adoasis",
         "twitter": "twitter",
         "instagram": "instagram",
         "facebook": "facebook",
         "quora": "quora",
+        "adoasis": "adoasis"
     }
 
     @action(detail=False, methods=['POST'])
@@ -336,8 +338,8 @@ class AccountAuthentificationViewSet(GenericViewSet):
                 # wait for crawl terminated
                 print(f"{account.user_id} is in using, so don't stop it and never use it")
             else:
-                if cookie_real_end > cookie_start and  current_date >= cookie_real_end + timedelta(hours=3) :
-                    return (True, False)
+            #     if cookie_real_end > cookie_start and  current_date >= cookie_real_end + timedelta(hours=3) :
+            #         return (True, False)
                     
                 session_real_end = datetime.now()
                 # update table AccountAuthentification

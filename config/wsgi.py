@@ -41,5 +41,5 @@ application = get_wsgi_application()
 # creation of periodic events
 # periodic_task = UpdateAccountStateTasks()
 # periodic_task.update_account_state_tasks()
-periodic_task = UpdateAccountStateTasks()
-periodic_task.update_facebook_cookies_tasks()
+# periodic_task = UpdateAccountStateTasks()
+# periodic_task.update_facebook_cookies_tasks()
