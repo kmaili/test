@@ -311,6 +311,9 @@ class AccountAuthentificationViewSet(GenericViewSet):
 
 
                 return (True, False)
+            else: 
+                self.logger.info(f"{account.user_id} in rest ")
+                return (False,False)
 
         dag_runs = AirflowDAGRUN.objects.filter(session=account)
         # if len(dag_runs) == 0 and current_date >=  last_use_date + timedelta(hours=3) :
