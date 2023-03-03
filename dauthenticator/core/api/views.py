@@ -89,7 +89,14 @@ class AccountAuthentificationViewSet(GenericViewSet):
                 available, should_login = self.is_account_available_strategy1(account, current_date,media_name)
 
             media_idx = Driver.objects.get(driver_name=account.media)
-            all_accounts_situations.append({"account": {"user_id": account.user_id, "login": account.login, "password": account.password, "ip": account.ip, "media": media_idx.driver_name, "cookie": account.cookie or "", "cookie_start": account.cookie_start.strftime("%Y-%m-%d %H:%M:%S") if account.cookie_start else "", "cookie_expected_end": account.cookie_expected_end.strftime("%Y-%m-%d %H:%M:%S") if account.cookie_expected_end else "", "cookie_real_end": account.cookie_real_end.strftime("%Y-%m-%d %H:%M:%S") if account.cookie_real_end else "1980-01-01 00:00:00.954774+00:00", "modified_at": account.modified_at}, "available": available, "should_login": should_login})  # noqa E501
+            all_accounts_situations.append(
+                {"account": {
+                    "user_id": account.user_id, 
+                    "login": account.login, 
+                    "password": account.password, 
+                    "ip": account.ip, 
+                    "media": media_idx.driver_name, 
+                    "cookie": account.cookie or "", "cookie_start": account.cookie_start.strftime("%Y-%m-%d %H:%M:%S") if account.cookie_start else "", "cookie_expected_end": account.cookie_expected_end.strftime("%Y-%m-%d %H:%M:%S") if account.cookie_expected_end else "", "cookie_real_end": account.cookie_real_end.strftime("%Y-%m-%d %H:%M:%S") if account.cookie_real_end else "1980-01-01 00:00:00.954774+00:00", "modified_at": account.modified_at}, "available": available, "should_login": should_login})  # noqa E501
         accounts_available = list(filter(lambda account: account["available"], all_accounts_situations))
         # if there are no accounts available, just tell the Scheduler that there are no accounts
         self.logger.info(f'\n account available = {len(accounts_available)}')
