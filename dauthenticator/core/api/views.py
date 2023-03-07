@@ -72,10 +72,14 @@ class AccountAuthentificationViewSet(GenericViewSet):
         """
 
         media_name = request.data["media"]  # which social media
+        self.logger.info(f"{'='*150}")
+        client_name = request.data.get("client_name","crawlserver")
+        self.logger.info(f"{client_name}")
+        self.logger.info(f"{'='*150}")
         nb_jobs = int(request.data["nb_jobs"])
         current_date = datetime.now().astimezone(pytz.timezone('Europe/Paris'))
         # find all accounts of this media
-        all_accounts = AccountAuthentification.objects.filter(media=media_name).order_by("cookie", "cookie_real_end")
+        all_accounts = AccountAuthentification.objects.filter(media=media_name, client_name=client_name).order_by("cookie", "cookie_real_end")
         self.logger.info(f'all account \n {len(all_accounts)}')
         all_accounts_situations = []
         for account in all_accounts:
@@ -402,6 +406,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
         """
         media_name = media_name.data
         media, login, password, user_id, ip, cookie = media_name["media"], media_name["login"], media_name["password"], media_name["user_id"], media_name["ip"],  media_name["cookie"]  # noqa E501
+        client_name = media_name["client_name"]
         strategy = Driver.objects.get(driver_name = media).strategy
         try :
 
@@ -410,6 +415,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
                                                 password=password,
                                                 user_id=user_id,
                                                 media=media,
+                                                client_name=client_name,
                                                 ip=ip)
             else :
                 new_account = AccountAuthentification(login=login,
@@ -417,6 +423,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
                                                 user_id=user_id,
                                                 media=media,
                                                 ip=ip,
+                                                client_name=client_name,
                                                 cookie=cookie,
                                                 cookie_valid=True,
                                                 account_active=True,

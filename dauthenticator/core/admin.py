@@ -6,6 +6,7 @@ from .models import AccountAuthentification, AirflowDAGRUN, Driver
 @admin.register(AccountAuthentification)
 class AccountAuthentificationAdmin(ImportExportModelAdmin):
     list_display = ('id',
+                    'client_name',
                     'login',
                     'password',
                     'ip',

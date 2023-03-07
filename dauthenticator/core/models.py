@@ -20,6 +20,7 @@ class AccountAuthentification(models.Model):
     media = models.CharField(max_length=128, choices=MEDIA_CHOICES, default='twitter', null=False, blank=False)
     active = models.BooleanField(default=True)
     ip = models.CharField(max_length=128)
+    client_name = models.CharField(max_length=128, default='crawlserver', null=True, blank=True)
     cookie = models.TextField(null=True)
     cookie_valid = models.BooleanField(default=False)
     cookie_start = models.DateTimeField(null=True, blank=True)

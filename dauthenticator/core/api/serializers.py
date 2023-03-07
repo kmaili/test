@@ -19,6 +19,7 @@ class AccountAuthentificationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=250)
     user_id = serializers.CharField(max_length=250)
     ip = serializers.CharField(max_length=128)
+    client_name = serializers.CharField(max_length=128)
     cookie = serializers.CharField(allow_null=True)
     cookie_valid = serializers.BooleanField(default=False)
     cookie_start = serializers.DateTimeField(allow_null=True)
