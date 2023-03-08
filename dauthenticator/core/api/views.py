@@ -257,10 +257,24 @@ class AccountAuthentificationViewSet(GenericViewSet):
             #     if cookie_real_end > cookie_start and  current_date >= cookie_real_end + timedelta(hours=3) :
             #         return (True, False)
 
-                session_real_end = datetime.now()
                 # update table AccountAuthentification
-                self.update_account(account.user_id,"",session_real_end, media_name)
+
+# ------------------------------------ start new code ----------------------------------------------
+                try :
+                    if hours >= 3 and len(dag_runs) == 0 :
+                        self.logger.info(f"{account.user_id} session completed 3 hours of rest")
+                        session_real_end = cookie_expected_end
+                        self.update_account(account.user_id,"",session_real_end, media_name)
+                        return (True, True)
+                except: 
+                    pass
+                
+# ------------------------------------ end new code ----------------------------------------------
+
+                session_real_end = datetime.now().astimezone(pytz.timezone('Europe/Paris'))
                 self.logger.info(f"{account.user_id} session has finished and it should stop for 3 hours")
+                self.update_account(account.user_id,"",session_real_end, media_name)
+                
        
             return (False, False)
 
@@ -337,12 +351,34 @@ class AccountAuthentificationViewSet(GenericViewSet):
             else:
                 # self.update_account(account.user_id,cookie,datetime.now())
 
+# ------------------------------------ start new code ----------------------------------------------
+
+                try :
+                    if hours >= 3 and len(dag_runs) == 0 :
+                        self.logger.info(f"{account.user_id} session completed 3 hours of rest")
+                        session_real_end = cookie_expected_end
+                        cookie_start = datetime.now().astimezone(pytz.timezone('Europe/Paris'))
+                        cookie_expected_end = cookie_start + timedelta(hours=3)
+                        AccountAuthentification.objects.filter(user_id=account.user_id,media=media_name).update(
+                                    cookie_start=cookie_start,
+                                    cookie_expected_end=cookie_expected_end,
+                                    cookie=cookie,
+                                    cookie_real_end=session_real_end,
+                                    cookie_valid=True,
+                                    account_active=True,
+                                    account_valid=True,
+                                )
+                        return (True, False)
+                except: 
+                    pass
+# ------------------------------------ end new code ----------------------------------------------
+
                 try:
                     AccountAuthentification.objects.filter(user_id=account.user_id,media=media_name).update(
                                 cookie_start=None,
                                 cookie_expected_end=None,
                                 cookie=cookie,
-                                cookie_real_end=datetime.now(),
+                                cookie_real_end=datetime.now().astimezone(pytz.timezone('Europe/Paris')),
                                 cookie_valid=False,
                                 account_active=False,
                                 account_valid=False,
