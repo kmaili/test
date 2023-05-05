@@ -472,7 +472,24 @@ class AccountAuthentificationViewSet(GenericViewSet):
         output_serializer = AccountAuthentificationSerializer(new_account)
         return Response(status=status.HTTP_200_OK, data=output_serializer.data)
 
-    
+    @action(detail=False, methods=['POST'])
+    def update_cookies(self, request):
+        login = request.data["login"]  # which social media
+        media_name = request.data["media"]  # which social media
+        client_name = request.data.get("client_name","crawlserver")
+        cookies = request.data.get('cookies')
+        formatted_cookies = json.dumps(cookies) if cookies else ""
+        try:
+            table = AccountAuthentification.objects.filter(login=login,media=media_name, client_name=client_name).update(cookie=formatted_cookies)
+        except ObjectDoesNotExist as e:
+            self.logger.error(f"Object does not exist {e}")
+            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED, data={"status": "Failed"})         
+        except FieldDoesNotExist as e :
+            self.logger.error(f"Field Does not exist {e}")
+            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED, data={"status": "Failed"})
+        self.logger.info(f'cookies successfuly updates for the account {login}')
+        return Response(status=status.HTTP_200_OK, data={"status": "success"})
+
     @action(detail=False, methods=['POST'])
     def update_dagrun_account_mappings(self, data):
         """create or update DAG RUN in dauth
