@@ -66,3 +66,21 @@ services:
       - ./.env
     command: start_beat
     restart: always
+
+  docs:
+    build:
+      context: .
+      dockerfile: ./docs/Dockerfile
+      args:
+        BUILD_ENVIRONMENT: "local"
+    image: dauthenticator_docs_${BUILD_ENVIRONMENT}_server
+    container_name: dauthenticator_docs_${BUILD_ENVIRONMENT}_server
+    volumes:
+      - .:/app/:z
+    restart: always
+    ports:
+      - "9023:9000"
+    env_file:
+      - ./.env
+    command: start_docs
+

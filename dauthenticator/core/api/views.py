@@ -477,10 +477,10 @@ class AccountAuthentificationViewSet(GenericViewSet):
         login = request.data["login"]  # which social media
         media_name = request.data["media"]  # which social media
         client_name = request.data.get("client_name","crawlserver")
-        cookies = request.data.get('cookies')
-        formatted_cookies = json.dumps(cookies) if cookies else ""
+        cookies = request.data['cookies']
+        print(cookies)
         try:
-            table = AccountAuthentification.objects.filter(login=login,media=media_name, client_name=client_name).update(cookie=formatted_cookies)
+            table = AccountAuthentification.objects.filter(login=login,media=media_name, client_name=client_name).update(cookie=cookies)
         except ObjectDoesNotExist as e:
             self.logger.error(f"Object does not exist {e}")
             return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED, data={"status": "Failed"})         

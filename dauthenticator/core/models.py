@@ -12,7 +12,8 @@ class AccountAuthentification(models.Model):
         ('instagram', 2),
         ('facebook', 3),
         ('quora', 4),
-        ('adoasis', 5)
+        ('adoasis', 5),
+        ('tumblr', 6)  
     )
     login = models.EmailField(max_length=256)
     password = models.CharField(max_length=250)

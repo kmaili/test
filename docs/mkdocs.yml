@@ -1,0 +1,68 @@
+site_name: Dauthenticator Docs
+site_url: https://example.com/
+repo_url: https://gitlab.kaisens.fr/kaisensdata/apps/4inshield/back/dauthenticator/
+site_description: This site
+site_author: Manel FARES
+copyright: Copyright © 2022 Kaisens Data.
+
+nav:
+    - Home: index.md
+    - About: about.md
+    - References: reference.md
+    - How-To Guides: how-to-guides.md
+    - FAQ:
+      - site.md
+
+    - License: about.md
+
+
+
+theme:
+  name: material
+  custom_dir: mkdocs-material/
+  language: en
+  font:
+    text: Lato
+    code: JetBrains Mono
+  feature:
+    tabs: true
+  palette:
+    primary: red
+    accent: manticore-orange
+  logo:
+    img/kd.png
+  extra:
+    version: 1.0
+
+markdown_extensions:
+  - admonition # add info/warn/error admonitions
+  - pymdownx.arithmatex # fancy math styling
+  - markdown.extensions.attr_list # Customn attributes for elements
+  - pymdownx.betterem: # better bolding styles
+      smart_enable: all
+  - pymdownx.caret # insert and superscript
+  - pymdownx.critic # editing allowed
+  - pymdownx.details # admonition style details
+  - pymdownx.emoji: # emojis
+      emoji_generator: !!python/name:pymdownx.emoji.to_svg
+  - pymdownx.inlinehilite # inline code highlighting
+  - pymdownx.magiclink # autolinks and shorthand
+  - pymdownx.mark # highlights
+  - pymdownx.smartsymbols # special symbols like arrows
+  - pymdownx.superfences # tabbed content (e.g. with code)
+  - pymdownx.tasklist: # task list
+      custom_checkbox: true
+  - pymdownx.tilde # strike-through
+  - codehilite: # highlight code blocks
+      linenums: true
+      use_pygments: false
+  - toc: # add linking to headers
+      permalink: true
+
+
+plugins:
+- search
+- mkdocstrings:
+    handlers:
+      python:
+        paths: [..]
