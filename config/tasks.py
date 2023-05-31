@@ -1,73 +1,71 @@
 from datetime import datetime
 from celery import shared_task
-
+import json
 import pytz
-from facebook_driver.drivers import FacebookDriver
+from importlib import import_module
+import time
+from dauthenticator.utils import config
+from dauthenticator.utils.utils import *
+from dauthenticator.utils.logging import Logger
+
+
+logger = Logger(config).logger
+import logging as logger
+
+def driver_update_cookies(media_name:str, cookies, remote_url,driver_info):
+    """update cookies """
+
+    try :
+        driver = load_class(driver_info.import_package)(
+                            driver_language='en-EN',
+                            remote_url=remote_url,
+                            headless = False,
+                            cookie=cookies)
+        if (type ( driver._driver ) == bool) :
+            return None
+        
+    except Exception as e :
+        logger.error("Driver class instanciation Failed")
+
+    time.sleep(4)
+    try :
+        time.sleep(3)
+        new_cookies = driver.get_login_cookies()
+        driver.close()
+        return new_cookies
+    except Exception as e :
+        logger.error("get login cookies from driver failed")
+    
+    return cookies
 
 
 @shared_task(bind=True)
-def account_state_update(self, *args):
-    from dauthenticator.core.models import AccountAuthentification, AirflowDAGRUN
-    current_date = datetime.now().astimezone(pytz.timezone('Europe/Paris'))
-    all_accounts = AccountAuthentification.objects.all().order_by("cookie", "cookie_real_end")
-    print("all account \n",len(all_accounts),'______')
+def drivers_cookies_update(self, *args):
+
+    from dauthenticator.core.models import AccountAuthentification, Driver
+    liste_drivers = []
+    drivers2 = Driver.objects.filter(strategy="strategy2") 
+    for d in drivers2 :
+        liste_drivers.append(d.driver_name)
+
+
+    all_accounts = AccountAuthentification.objects.filter(media__in =liste_drivers).order_by("cookie", "cookie_real_end")
+    logger.info(f"Number of accounts to update their cookies {len(all_accounts)}")
     for account in all_accounts:
-        # 1. sort all_accounts in order no cookie and with cookie
-        # 2. If there is an account or session available, break
-        cookie_expected_end = account.cookie_expected_end
-        cookie = account.cookie
+        media = account.media
+        cookies = json.loads(account.cookie)
+        driver_info = Driver.objects.get(driver_name=media) 
 
-        if cookie:
-            dag_runs = AirflowDAGRUN.objects.filter(session=account)
-            if cookie_expected_end >= current_date:
-                # The session is in 3 hours
-                # check if there are already two DAG_Runs using this session
-                # if no, we can use this session, otherwise no
-                print(f"{account.user_id} there are {len(dag_runs)} DAG_Runs using this session, ")
-
-            else:  # The session has finished 3 hours
-                hours = (current_date - cookie_expected_end).seconds // 60 // 60
-                if len(dag_runs) > 1 and hours < 1.5:
-                    # wait for crawl terminated
-                    print(f"{account.user_id} is in using, so don't stop it and never use it")
-                else:
-                    session_real_end = datetime.now()
-                    # update table AccountAuthentification
-                    AccountAuthentification.objects.filter(user_id=account.user_id).update(
-                        cookie="",
-                        cookie_real_end=session_real_end,
-                        cookie_valid=False,
-                        account_active=False,
-                        account_valid=False,
-                    )
-                    print(f"{account.user_id} session has finished and it should stop for 3 hours")
-
-
-
-@shared_task(bind=True)
-def facebook_cookies_update(self, *args):
-    from dauthenticator.core.models import AccountAuthentification, AirflowDAGRUN
-    current_date = datetime.now().astimezone(pytz.timezone('Europe/Paris'))
-    all_accounts = AccountAuthentification.objects.get().order_by("cookie", "cookie_real_end")
-    print("all account \n",len(all_accounts),'______')
-    for account in all_accounts:
-        cookie_expected_end = account.cookie_expected_end
-        cookie = account.cookie
+        # print(cookies)
         remote_url = account.ip
 
-        if cookie:
-            driver = FacebookDriver(
-                        driver_language='en-EN',
-                        remote_url=remote_url,
-                        headless = False,
-                        cookie=cookie
+        if cookies and get_node_available(logger,remote_url) > 0 and check_cookies(json.dumps(cookies)):
+            logger.info(f'media {account.media}')
+
+            new_cookies = driver_update_cookies(media_name=media,cookies=cookies,remote_url=remote_url,driver_info=driver_info)
+            new_cookies = json.dumps(new_cookies) if new_cookies else ""
+            AccountAuthentification.objects.filter(user_id=account.user_id).update(
+                        cookie=new_cookies,modified_at=datetime.now().astimezone(pytz.timezone('Europe/Paris'))
                     )
 
-            new_cookies = driver.get_login_cookies()
-            
-            AccountAuthentification.objects.filter(user_id=account.user_id).update(
-                        cookie=new_cookies,
-                    )
-            driver.close()
-            print(f"cookies update for {account.user_id} ")
-            print("cookie",cookie)
+            logger.info(f"cookies update for {account.user_id} ")

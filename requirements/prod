@@ -9,6 +9,9 @@ sentry-sdk==1.1.0  # https://github.com/getsentry/sentry-python
 # Django
 # ------------------------------------------------------------------------------
 django-anymail==8.4  # https://github.com/anymail/django-anymail
-twitter_driver==0.9.14
-instaDriver==0.4.14
-facebook_driver==0.1.18
+twitter_driver==2.0.6
+instaDriver==2.0.3
+facebook_driver==2.0.10
+quora_driver==1.1.0
+adoasis_driver==2.1.0
+tumblr_driver==1.4.3
