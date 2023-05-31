@@ -4,12 +4,16 @@ Powered by _**Kaisensdata**_. Dauthenticator is a dajgo app that manage the driv
 
 ## Strategies
 **Stratégy 1 :**
+
 login and get cookies
 
-<img src="principe_de_fonctionnement.png" width="1000">
+<img src="principe_de_fonctionnement.png" width="800">
 
 **Stratégy 2 :** 
+
 Add cookies manually for the first time and never use login. There is a periodic task for upfating the cookies.
+
+<img src="strategy2.png" width="800">
 
 ## Drivers
 
