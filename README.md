@@ -9,8 +9,9 @@ login and get cookies
 <img src="principe_de_fonctionnement.png" width="1000">
 
 **Stratégy 2 :** 
-Add cookies manually for the first time and never use login. There is a periodic task for upfating the cookies.
+Add cookies manually for the first time and never use login. There is a periodic task for updating the cookies.
 
+<img src="strategy2.png" width="1000">
 ## Drivers
 
  - [ ] Twitter 
@@ -18,7 +19,7 @@ Add cookies manually for the first time and never use login. There is a periodic
  - [ ] Facebook
  - [ ] Quora
  - [ ] Adoasis
-
+ - [ ] Tumblr
 ## Technology and Tools: 
 
 - Docker 
@@ -30,7 +31,7 @@ Add cookies manually for the first time and never use login. There is a periodic
 ```bash
     $ git clone http://gitlab.kaisens.fr/kaisensdata/apps/4inshield/back/dauthenticator.git
 
-    $ git checkout develop
+    $ git checkout staging
 
 ```
 
@@ -47,7 +48,7 @@ Add cookies manually for the first time and never use login. There is a periodic
 
 3. ###### Request and add the .env file
 
- - [ ] Change the BUILD_ENVIRONMENT to prod if you want to use the prod environment
+ - [ ] Change the BUILD_ENVIRONMENT to staging if you want to use the prod environment
 
 
 4. ###### Start the project :

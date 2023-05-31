@@ -11,7 +11,7 @@ services:
       context: .
       dockerfile: ./Dockerfile
       args:
-        BUILD_ENVIRONMENT: "${BUILD_ENVIRONMENT}"
+        BUILD_ENVIRONMENT: "local"
     image: dauthenticator_${BUILD_ENVIRONMENT}_image
     container_name: dauthenticator_${BUILD_ENVIRONMENT}_server
     depends_on:
