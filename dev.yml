@@ -1,0 +1,86 @@
+version: '3.4'
+
+volumes:
+  dauthenticator_develop_postgres_data: {}
+  dauthenticator_develop_postgres_data_backups: {}
+
+services:
+  django:
+    &django
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        BUILD_ENVIRONMENT: "local"
+    image: dauthenticator_${BUILD_ENVIRONMENT}_image
+    container_name: dauthenticator_${BUILD_ENVIRONMENT}_server
+    depends_on:
+      - postgres
+    volumes:
+      - .:/app:z
+    env_file:
+      - ./.env
+    ports:
+      - "8011:8000"
+    command: start_server
+    restart: always
+
+  postgres:
+    image: releases.registry.docker.kaisens.fr/kaisensdata/devops/docker-images/postgresql:14.5-2
+    container_name: dauthenticator_${BUILD_ENVIRONMENT}_postgres
+    volumes:
+      - dauthenticator_develop_postgres_data:/var/lib/postgresql/data:Z
+      - dauthenticator_develop_postgres_data_backups:/backups:z
+    env_file:
+      - ./.env
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    restart: always
+
+  redis:
+    image: redis:6
+    container_name: dauthenticator_${BUILD_ENVIRONMENT}_redis
+
+  celeryworker:
+    <<: *django
+    image: dauthenticator_${BUILD_ENVIRONMENT}_celeryworker
+    container_name: dauthenticator_${BUILD_ENVIRONMENT}_celeryworker
+    depends_on:
+      - redis
+      - postgres
+    env_file:
+      - ./.env
+    ports: []
+    command: start_worker
+    restart: always
+
+  celerybeat:
+    <<: *django
+    image: dauthenticator_${BUILD_ENVIRONMENT}_celerybeat
+    container_name: dauthenticator_${BUILD_ENVIRONMENT}_celerybeat
+    depends_on:
+      - redis
+      - postgres
+    ports: []
+    env_file:
+      - ./.env
+    command: start_beat
+    restart: always
+
+  docs:
+    build:
+      context: .
+      dockerfile: ./docs/Dockerfile
+      args:
+        BUILD_ENVIRONMENT: "local"
+    image: dauthenticator_docs_${BUILD_ENVIRONMENT}_server
+    container_name: dauthenticator_docs_${BUILD_ENVIRONMENT}_server
+    volumes:
+      - .:/app/:z
+    restart: always
+    ports:
+      - "9023:9000"
+    env_file:
+      - ./.env
+    command: start_docs
+

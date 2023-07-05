@@ -7,13 +7,12 @@ copyright: Copyright © 2022 Kaisens Data.
 
 nav:
     - Home: index.md
-    - About: about.md
-    - References: reference.md
+    - Strategies: about.md
     - How-To Guides: how-to-guides.md
     - FAQ:
       - site.md
 
-    - License: about.md
+
 
 
 
