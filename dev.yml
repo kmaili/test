@@ -1,8 +1,8 @@
 version: '3.4'
 
 volumes:
-  dauthenticator_develop_postgres_data: {}
-  dauthenticator_develop_postgres_data_backups: {}
+  dauthenticator_develop1_postgres_data: {}
+  dauthenticator_develop1_postgres_data_backups: {}
 
 services:
   django:
@@ -29,8 +29,8 @@ services:
     image: releases.registry.docker.kaisens.fr/kaisensdata/devops/docker-images/postgresql:14.5-2
     container_name: dauthenticator_${BUILD_ENVIRONMENT}_postgres
     volumes:
-      - dauthenticator_develop_postgres_data:/var/lib/postgresql/data:Z
-      - dauthenticator_develop_postgres_data_backups:/backups:z
+      - dauthenticator_develop1_postgres_data:/var/lib/postgresql/data:Z
+      - dauthenticator_develop1_postgres_data_backups:/backups:z
     env_file:
       - ./.env
     ports:

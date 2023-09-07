@@ -53,19 +53,22 @@ def drivers_cookies_update(self, *args):
     logger.info(f"Number of accounts to update their cookies {len(all_accounts)}")
     for account in all_accounts:
         media = account.media
-        cookies = json.loads(account.cookie)
-        driver_info = Driver.objects.get(driver_name=media) 
+        if account.cookie :
+            print('_____________________________',account.login)
+            cookies = json.loads(account.cookie)
+            media_name="facebook" if media=="facebook_scraper" else media
+            driver_info = Driver.objects.get(driver_name=media_name) 
 
-        # print(cookies)
-        remote_url = account.ip
+            # print(cookies)
+            remote_url = account.ip
 
-        if cookies and get_node_available(logger,remote_url) > 0 and check_cookies(json.dumps(cookies)):
-            logger.info(f'media {account.media}')
+            if cookies and get_node_available(logger,remote_url) > 0 and check_cookies(json.dumps(cookies)):
+                logger.info(f'media {account.media}')
 
-            new_cookies = driver_update_cookies(media_name=media,cookies=cookies,remote_url=remote_url,driver_info=driver_info)
-            new_cookies = json.dumps(new_cookies) if new_cookies else ""
-            AccountAuthentification.objects.filter(user_id=account.user_id).update(
-                        cookie=new_cookies,modified_at=datetime.now().astimezone(pytz.timezone('Europe/Paris'))
-                    )
+                new_cookies = driver_update_cookies(media_name=media,cookies=cookies,remote_url=remote_url,driver_info=driver_info)
+                new_cookies = json.dumps(new_cookies) if new_cookies else ""
+                AccountAuthentification.objects.filter(user_id=account.user_id).update(
+                            cookie=new_cookies,modified_at=datetime.now().astimezone(pytz.timezone('Europe/Paris'))
+                        )
 
-            logger.info(f"cookies update for {account.user_id} ")
+                logger.info(f"cookies update for {account.user_id} ")

@@ -12,8 +12,10 @@ pytest-sugar==0.9.4  # https://github.com/Frozenball/pytest-sugar
 
 # Documentation
 # ------------------------------------------------------------------------------
-sphinx==4.0.2  # https://github.com/sphinx-doc/sphinx
-sphinx-autobuild==2021.3.14 # https://github.com/GaretJax/sphinx-autobuild
+# sphinx==4.0.2  # https://github.com/sphinx-doc/sphinx
+# sphinx-autobuild==2021.3.14 # https://github.com/GaretJax/sphinx-autobuild
+sphinx==3.5.1  # https://github.com/sphinx-doc/sphinx
+sphinx-autobuild==2020.9.1 # https://github.com/GaretJax/sphinx-autobuild
 
 # Code quality
 # ------------------------------------------------------------------------------
@@ -33,9 +35,10 @@ django-extensions==3.1.3  # https://github.com/django-extensions/django-extensio
 django-coverage-plugin==2.0.0  # https://github.com/nedbat/django_coverage_plugin
 pytest-django==4.4.0  # https://github.com/pytest-dev/pytest-django
 
-twitter_driver==2.0.14
-instaDriver==2.0.9
-facebook_driver==2.0.11
+
+twitter_driver==2.1.2
+instaDriver==3.1.5
+facebook_driver==2.1.4
 # quora_driver==1.1.0
-adoasis_driver==2.1.6
-tumblr_driver==1.4.3
+adoasis_driver==3.0.3
+tumblr_driver==2.0.1
