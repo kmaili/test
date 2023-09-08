@@ -13,7 +13,8 @@ class AccountAuthentification(models.Model):
         ('facebook', 3),
         ('quora', 4),
         ('adoasis', 5),
-        ('tumblr', 6)  
+        ('tumblr', 6),
+        ('facebook_scraper',7)  
     )
     login = models.EmailField(max_length=256)
     password = models.CharField(max_length=250)
@@ -22,7 +23,7 @@ class AccountAuthentification(models.Model):
     active = models.BooleanField(default=True)
     ip = models.CharField(max_length=128)
     client_name = models.CharField(max_length=128, default='crawlserver', null=True, blank=True)
-    cookie = models.TextField(null=True)
+    cookie = models.TextField(null=True,  blank=True)
     cookie_valid = models.BooleanField(default=False)
     cookie_start = models.DateTimeField(null=True, blank=True)
     cookie_expected_end = models.DateTimeField(null=True, blank=True)

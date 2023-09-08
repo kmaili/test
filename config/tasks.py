@@ -54,8 +54,10 @@ def drivers_cookies_update(self, *args):
     for account in all_accounts:
         media = account.media
         if account.cookie :
+            print('_____________________________',account.login)
             cookies = json.loads(account.cookie)
-            driver_info = Driver.objects.get(driver_name=media) 
+            media_name="facebook" if media=="facebook_scraper" else media
+            driver_info = Driver.objects.get(driver_name=media_name) 
 
             # print(cookies)
             remote_url = account.ip
