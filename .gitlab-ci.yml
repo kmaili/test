@@ -1,29 +1,10 @@
 include:
   - project: kaisensdata/devops/cicd-templates
-    ref: 0.1.0
+    ref: master
     file:
       - templates/django-app.yml
+      - addons/deploy-app.yml
 
-job1:
-  stage: deploy
-  image: registry.kaisens.fr/docker-compose:latest
-  variables:
-    DEPLOY_SERVER_IP: "54.36.177.119"
-    DOCKER_HOST: "ssh://root@$DEPLOY_SERVER_IP"
-  tags:
-    - docker
-  before_script:
-    - mkdir -p ~/.ssh
-    - echo "${DEPLOY_SERVER_PRIVATE_KEY}" | tr -d '\r' > ~/.ssh/id_rsa
-    - chmod 600 ~/.ssh/id_rsa
-    - eval "$(ssh-agent -s)"
-    - ssh-add ~/.ssh/id_rsa
-    - ssh-keyscan -H $DEPLOY_SERVER_IP >> ~/.ssh/known_hosts
-  script:
-    - docker ps || true
-    - touch .env
-    - cat .env.sample > .env
-    - docker login -u $REGISTRY_USER -p $REGISTRY_PASSWORD $REGISTRY_SERVER
-    - docker-compose up -d --build
-  only:
-    - develop
+variables:
+  SVC_NAMES: django celeryworker celerybeat redis
+  DEPLOY_REPO_PATH : kaisensdata/deployments/apps/4inshield/backend/dauthenticator
