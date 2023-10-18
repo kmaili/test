@@ -4,6 +4,7 @@ import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
+from sentry_sdk.integrations.celery import CeleryIntegration
 
 from .base import *  # noqa
 from .base import env
@@ -11,7 +12,7 @@ from .base import env
 # GENERAL
 # ------------------------------------------------------------------------------
 SECRET_KEY = env("DJANGO_SECRET_KEY")
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["dauthenticator.prod.netethic.fr"])
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["dauthenticator.prod.fr"])
 
 # DATABASES
 # ------------------------------------------------------------------------------
@@ -47,19 +48,10 @@ SECURE_CONTENT_TYPE_NOSNIFF = env.bool(
     "DJANGO_SECURE_CONTENT_TYPE_NOSNIFF", default=True
 )
 
-# STATIC
-# ------------------------------------------------------------------------------
-STATIC_ROOT = str(ROOT_DIR / "staticfiles")
-STATIC_URL = "/static/"
-STATICFILES_DIRS = [str(APPS_DIR / "static")]
-STATICFILES_FINDERS = [
-    "django.contrib.staticfiles.finders.FileSystemFinder",
-    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
-]
 
 # STATIC
 # ------------------------
-#STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # MEDIA
 # ------------------------------------------------------------------------------
 
@@ -154,7 +146,7 @@ sentry_logging = LoggingIntegration(
     level=SENTRY_LOG_LEVEL,  # Capture info and above as breadcrumbs
     event_level=logging.ERROR,  # Send errors as events
 )
-integrations = [sentry_logging, DjangoIntegration(), RedisIntegration()]
+integrations = [sentry_logging, DjangoIntegration(), RedisIntegration(),CeleryIntegration()]
 sentry_sdk.init(
     dsn=SENTRY_DSN,
     integrations=integrations,

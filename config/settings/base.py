@@ -20,7 +20,8 @@ if READ_DOT_ENV_FILE:
 # https://docs.djangoproject.com/en/dev/ref/settings/#debug
 DEBUG = env.bool("DJANGO_DEBUG", False)
 
-TIME_ZONE = "Europe/Paris"
+#TIME_ZONE = "Europe/Paris"
+TIME_ZONE = "UTC"
 LANGUAGE_CODE = "en-us"
 SITE_ID = 1
 USE_I18N = True
@@ -59,7 +60,6 @@ THIRD_PARTY_APPS = [
     'import_export',
     "drf_yasg",
     "django_celery_beat",
-    "django_prometheus",
 ]
 
 LOCAL_APPS = [
@@ -103,7 +103,6 @@ AUTH_PASSWORD_VALIDATORS = [
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#middleware
 MIDDLEWARE = [
-    "django_prometheus.middleware.PrometheusBeforeMiddleware",    
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -115,7 +114,6 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.common.BrokenLinkEmailsMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "django_prometheus.middleware.PrometheusAfterMiddleware"
 ]
 
 # STATIC
