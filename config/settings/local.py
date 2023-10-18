@@ -9,18 +9,8 @@ SECRET_KEY = env(
     "DJANGO_SECRET_KEY",
     default="QEYydXV3RlYiM4WuQM2cAeNR6KF345osaafuSEVMnrksbSsdrxF1QGXjt87ddg7E",
 )
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["dauthenticator.prod.netethic.fr"])
 
-ALLOWED_HOSTS = [
-    "localhost",
-    "0.0.0.0",
-    "127.0.0.1",
-    "192.168.33.160",
-    "51.38.62.168",
-    "149.202.70.238",
-    "54.36.177.119",
-    "178.33.234.139",
-    "51.89.21.5",
-]
 
 # CACHES
 # ------------------------------------------------------------------------------

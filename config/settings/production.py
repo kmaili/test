@@ -11,7 +11,7 @@ from .base import env
 # GENERAL
 # ------------------------------------------------------------------------------
 SECRET_KEY = env("DJANGO_SECRET_KEY")
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["dauthenticator.shield.kaisens.fr"])
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["dauthenticator.prod.netethic.fr"])
 
 # DATABASES
 # ------------------------------------------------------------------------------
@@ -50,7 +50,7 @@ SECURE_CONTENT_TYPE_NOSNIFF = env.bool(
 
 # STATIC
 # ------------------------
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+#STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # MEDIA
 # ------------------------------------------------------------------------------
 
