@@ -13,5 +13,5 @@ twitter_driver==2.1.2
 instaDriver==3.1.5
 facebook_driver==2.1.4
 # quora_driver==1.1.0
-adoasis_driver==3.0.3
-tumblr_driver==2.0.1
+adoasis_driver==3.0.4
+tumblr_driver==2.0.2
