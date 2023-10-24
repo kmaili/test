@@ -20,7 +20,6 @@ from pathlib import Path
 from django.core.wsgi import get_wsgi_application
 
 #from dauthenticator.core.periodic_tasks.periodic_account_state_update import UpdateAccountStateTasks
-from dauthenticator.core.periodic_tasks.periodic_account_state_update import UpdateAccountStateTasks
 # This allows easy placement of apps within the interior
 # dauthenticator directory.
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent
@@ -35,6 +34,8 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.production")
 # file. This includes Django's development server, if the WSGI_APPLICATION
 # setting points here.
 application = get_wsgi_application()
+from dauthenticator.core.periodic_tasks.periodic_account_state_update import UpdateAccountStateTasks
+
 # Apply WSGI middleware here.
 # from helloworld.wsgi import HelloWorldApplication
 # application = HelloWorldApplication(application)

@@ -31,3 +31,4 @@ django-cors-headers==3.7.0 # https://github.com/adamchainz/django-cors-headers
 drf-yasg==1.20.0
 # Prometheus
 django-prometheus==2.2.0 # https://github.com/korfuri/django-prometheus
+django-compressor==4.1  # https://github.com/django-compressor/django-compressor

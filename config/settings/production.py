@@ -153,3 +153,22 @@ sentry_sdk.init(
     environment=env("SENTRY_ENVIRONMENT", default="production"),
     traces_sample_rate=env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.0),
 )
+
+# django-compressor
+# ------------------------------------------------------------------------------
+# https://django-compressor.readthedocs.io/en/latest/settings/#django.conf.settings.COMPRESS_ENABLED
+COMPRESS_ENABLED = env.bool("COMPRESS_ENABLED", default=False)
+# https://django-compressor.readthedocs.io/en/latest/settings/#django.conf.settings.COMPRESS_STORAGE
+COMPRESS_STORAGE = "compressor.storage.GzipCompressorFileStorage"
+# https://django-compressor.readthedocs.io/en/latest/settings/#django.conf.settings.COMPRESS_URL
+COMPRESS_URL = STATIC_URL  # noqa F405
+# https://django-compressor.readthedocs.io/en/latest/settings/#django.conf.settings.COMPRESS_OFFLINE
+COMPRESS_OFFLINE = True  # Offline compression is required when using Whitenoise
+# https://django-compressor.readthedocs.io/en/latest/settings/#django.conf.settings.COMPRESS_FILTERS
+COMPRESS_FILTERS = {
+    "css": [
+        "compressor.filters.css_default.CssAbsoluteFilter",
+        "compressor.filters.cssmin.rCSSMinFilter",
+    ],
+    "js": ["compressor.filters.jsmin.JSMinFilter"],
+}

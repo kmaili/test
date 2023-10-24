@@ -67,6 +67,7 @@ LOCAL_APPS = [
     "dauthenticator.core.apps.CoreConfig",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+INSTALLED_APPS += ["compressor"]
 
 # MIGRATIONS
 # ------------------------------------------------------------------------------
@@ -125,6 +126,7 @@ STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
 ]
+STATICFILES_FINDERS += ["compressor.finders.CompressorFinder"]
 
 # MEDIA
 # ------------------------------------------------------------------------------

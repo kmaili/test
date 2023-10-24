@@ -6,5 +6,5 @@ include:
       - addons/deploy-app.yml
 
 variables:
-  SVC_NAMES: django celeryworker celerybeat redis
+  SVC_NAMES: django celeryworker celerybeat 
   DEPLOY_REPO_PATH : kaisensdata/deployments/apps/4inshield/backend/dauthenticator
