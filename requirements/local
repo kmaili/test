@@ -36,7 +36,7 @@ django-coverage-plugin==2.0.0  # https://github.com/nedbat/django_coverage_plugi
 pytest-django==4.4.0  # https://github.com/pytest-dev/pytest-django
 
 
-twitter_driver==2.1.2
+twitter_driver==2.1.4
 instaDriver==3.1.5
 facebook_driver==2.1.4
 # quora_driver==1.1.0

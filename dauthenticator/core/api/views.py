@@ -211,6 +211,22 @@ class AccountAuthentificationViewSet(GenericViewSet):
         except FieldDoesNotExist as e :
             self.logger.error(f"Field Does not exist {e}")
 
+    def update_account_state(self, user_id, cookie_start, cookie_expected_end, cookie, session_real_end, media_name, cookie_valid=False, account_active=False, account_valid=False):
+        try:
+            AccountAuthentification.objects.filter(user_id=user_id,media=media_name).update(
+                        cookie_start=cookie_start,
+                        cookie_expected_end=cookie_expected_end,
+                        cookie=cookie,
+                        cookie_real_end=session_real_end,
+                        cookie_valid=cookie_valid,
+                        account_active=account_active,
+                        account_valid=account_valid,
+                    )
+        except  AccountAuthentification.DoesNotExist:
+            self.logger.info("Account not found")
+        except FieldDoesNotExist as e :
+            self.logger.error(f"Field Does not exist {e}")
+
     def is_account_available_strategy1(self, account, current_date, media_name):
         """To verify if an account is now available following the first strategy
 
@@ -254,9 +270,6 @@ class AccountAuthentificationViewSet(GenericViewSet):
                 # wait for crawl terminated
                 self.logger.info(f"{account.user_id} is in using, so don't stop it and never use it")
             else:
-            #     if cookie_real_end > cookie_start and  current_date >= cookie_real_end + timedelta(hours=3) :
-            #         return (True, False)
-
                 # update table AccountAuthentification
 
 # ------------------------------------ start new code ----------------------------------------------
@@ -264,7 +277,8 @@ class AccountAuthentificationViewSet(GenericViewSet):
                     if hours >= 3 and len(dag_runs) == 0 :
                         self.logger.info(f"{account.user_id} session completed 3 hours of rest")
                         session_real_end = cookie_expected_end
-                        self.update_account(account.user_id,"",session_real_end, media_name)
+                        self.update_account_state(account.user_id,account.cookie_start, cookie_expected_end,"", session_real_end, media_name)
+                        # self.update_account(account.user_id,"",session_real_end, media_name)
                         return (True, True)
                 except: 
                     pass
@@ -273,8 +287,8 @@ class AccountAuthentificationViewSet(GenericViewSet):
 
                 session_real_end = datetime.now().astimezone(pytz.timezone('Europe/Paris'))
                 self.logger.info(f"{account.user_id} session has finished and it should stop for 3 hours")
-                self.update_account(account.user_id,"",session_real_end, media_name)
-                
+                # self.update_account(account.user_id,"",session_real_end, media_name)
+                self.update_account_state(account.user_id,account.cookie_start, cookie_expected_end,"", session_real_end, media_name)
        
             return (False, False)
 
@@ -302,7 +316,8 @@ class AccountAuthentificationViewSet(GenericViewSet):
 
 
         elif not check_cookies(cookie):
-            self.update_account(user_id= account.user_id,cookie="",session_real_end= None, media_name=media_name)
+            # self.update_account(user_id= account.user_id,cookie="",session_real_end= None, media_name=media_name)
+            self.update_account_state(account.user_id,account.cookie_start, account.cookie_expected_end,"", None, media_name)
             self.logger.info(f"The cookies for this account {account.user_id} are expired")  # noqa E501
             return (False, False)
                             
@@ -334,8 +349,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
                 return (False,False)
 
         dag_runs = AirflowDAGRUN.objects.filter(session=account)
-        # if len(dag_runs) == 0 and current_date >=  last_use_date + timedelta(hours=3) :
-        #     return (True, False)
+
 
         if cookie_expected_end >= current_date:
             # The session is in 3 hours
@@ -349,9 +363,6 @@ class AccountAuthentificationViewSet(GenericViewSet):
                 # wait for crawl to complete
                 self.logger.info(f"{account.user_id} is in using, so don't stop it and never use it")
             else:
-                # self.update_account(account.user_id,cookie,datetime.now())
-
-# ------------------------------------ start new code ----------------------------------------------
 
                 try :
                     if hours >= 3 and len(dag_runs) == 0 :
@@ -371,7 +382,6 @@ class AccountAuthentificationViewSet(GenericViewSet):
                         return (True, False)
                 except: 
                     pass
-# ------------------------------------ end new code ----------------------------------------------
 
                 try:
                     AccountAuthentification.objects.filter(user_id=account.user_id,media=media_name).update(
@@ -624,19 +634,6 @@ class AccountAuthentificationViewSet(GenericViewSet):
         except Exception as ex:
             raise APIException(f"[EXCEPTION] when trying to delete all accounts, Message: {ex}")
         return Response(status=status.HTTP_200_OK, data={"status": "ok"})
-
-    # @action(detail=False, methods=['POST'])
-    # def update_account(self, media_name):
-
-    #     media_name = media_name.data
-    #     media,  user_id, cookie = media_name["media"], media_name["user_id"], media_name["cookie"], media_name["user_id"], media_name["ip"],  media_name["cookie"]  # noqa E501
-   
-    #     media_name = media_name.data
-    #     login, modified_at, active = media_name["login"], media_name["modified_at"], media_name["active"]
-    #     table = AccountAuthentification.objects.filter(login=login)
-    #     table.update(modified_at=modified_at, active=active)
-    #     output_serializer = AccountAuthentificationSerializer(table[0])
-    #     return Response(status=status.HTTP_200_OK, data=output_serializer.data)
 
 class DriverViewSet(GenericViewSet):
 
