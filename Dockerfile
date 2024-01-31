@@ -1,10 +1,10 @@
 ARG IMAGE_BASE_URL="releases.registry.docker.kaisens.fr"
-ARG PYTHON_IMAGE_VERSION="3.10-3"
+ARG PYTHON_IMAGE_VERSION="3.10-4"
 ARG PYTHON_BUILD_IMAGE_VERSION="${PYTHON_IMAGE_VERSION}-3"
 ARG BUILD_ENVIRONMENT="local"
 
 ARG TMP_SETUP_DIRPATH="/tmp/src"
-ARG VENV_DIRPATH="/opt/webserver/venv"
+ARG VENV_DIRPATH="/opt/dauthenticator/venv"
 ARG APP_HOME="/app"
 
 
@@ -16,11 +16,16 @@ ARG BUILD_ENVIRONMENT
 
 USER root
 
-RUN virtualenv "${VENV_DIRPATH}"
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libxml2-dev libxslt1-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && virtualenv "${VENV_DIRPATH}" \
+    ;
+
 COPY requirements/ "${TMP_SETUP_DIRPATH}/requirements"
 
 RUN "${VENV_DIRPATH}"/bin/pip install --no-cache-dir -r "${TMP_SETUP_DIRPATH}/requirements/${BUILD_ENVIRONMENT}"
-#RUN "${VENV_DIRPATH}"/bin/pip install --upgrade --no-cache-dir 
 
 USER "${OPS_USER}"
 
