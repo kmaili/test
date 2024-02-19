@@ -634,6 +634,26 @@ class AccountAuthentificationViewSet(GenericViewSet):
         except Exception as ex:
             raise APIException(f"[EXCEPTION] when trying to delete all accounts, Message: {ex}")
         return Response(status=status.HTTP_200_OK, data={"status": "ok"})
+    
+    @action(detail=False, methods=["POST"])
+    def update_real_end(self, data):
+        user_id = data.data["user_id"]
+        self.logger.info("{user_id}")
+        media = data.data["media"]
+        self.logger.info("{media}")
+        cookie_real_end = data.data["cookie_real_end"]
+        self.logger.info("{cookie_real_end}")
+        try:
+            account_auth = AccountAuthentification.objects.get(user_id=user_id, media=media)
+            account_auth.cookie_real_end = cookie_real_end  # Assuming you want to set it to the current time
+            account_auth.save()
+        except AccountAuthentification.DoesNotExist:
+            raise APIException("[EXCEPTION] account id does not exist")
+        except Exception as e:
+            raise APIException(f"[EXCEPTION] there has been an error, Message: {e}")
+
+        return Response({"status": "success"})  # Return a valid Response object
+            
 
 class DriverViewSet(GenericViewSet):
 

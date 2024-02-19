@@ -49,7 +49,7 @@ def drivers_cookies_update(self, *args):
         liste_drivers.append(d.driver_name)
 
 
-    all_accounts = AccountAuthentification.objects.filter(media__in =liste_drivers).order_by("cookie", "cookie_real_end")
+    all_accounts = AccountAuthentification.objects.filter(media__in =["instagram"]).order_by("cookie", "cookie_real_end")
     logger.info(f"Number of accounts to update their cookies {len(all_accounts)}")
     for account in all_accounts:
         media = account.media

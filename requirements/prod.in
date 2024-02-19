@@ -13,8 +13,8 @@ django-extensions==3.1.5  # https://github.com/django-extensions/django-extensio
 django-coverage-plugin==2.0.2  # https://github.com/nedbat/django_coverage_plugin
 pytest-django==4.5.2  # https://github.com/pytest-dev/pytest-django
 
-twitter_driver==2.1.2
+twitter_driver==2.1.5
 instaDriver==3.1.5
-facebook_driver==2.1.4
+facebook_driver==2.1.9
 adoasis_driver==3.0.4
 tumblr_driver==2.0.2
