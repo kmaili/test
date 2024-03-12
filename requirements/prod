@@ -15,7 +15,7 @@ pytest-django==4.5.2  # https://github.com/pytest-dev/pytest-django
 
 twitter_driver==2.1.5
 instaDriver==3.1.5
-facebook_driver==2.1.9
+facebook_driver==2.1.13
 adoasis_driver==3.0.4
 tumblr_driver==2.0.2
 # django-compressor==4.1  # https://github.com/django-compressor/django-compressor

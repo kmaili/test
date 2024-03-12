@@ -35,6 +35,7 @@ def load_class(dotpath: str):
 def check_cookies(cookies:str)->bool:
     """check cookies expiration date"""
     expiry=0
+    print('--------------- ookies ',cookies)
     cookies = json.loads(cookies)
 
     for dic in cookies:

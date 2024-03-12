@@ -71,36 +71,41 @@ class AccountAuthentificationViewSet(GenericViewSet):
             _Dict_: accounts or session available
         """
 
-        media_name = request.data["media"]  # which social media
-        self.logger.info(f"{'='*150}")
+        media_name = request.data["media"] 
         client_name = request.data.get("client_name","crawlserver")
-        self.logger.info(f"{client_name}")
-        self.logger.info(f"{'='*150}")
         nb_jobs = int(request.data["nb_jobs"])
         current_date = datetime.now().astimezone(pytz.timezone('Europe/Paris'))
+
         # find all accounts of this media
         all_accounts = AccountAuthentification.objects.filter(media=media_name, client_name=client_name).order_by("cookie", "cookie_real_end")
-        self.logger.info(f'all account \n {len(all_accounts)}')
         all_accounts_situations = []
+
+        # Get the driver strategy related to the media name
+        driver_info = Driver.objects.get(driver_name = media_name)
         for account in all_accounts:
+            available, should_login =  getattr(self, driver_info.strategy)(account, current_date, media_name)
+            # 
             # 1. sort all_accounts in order no cookie and with cookie
             # 2. If there is an account or session available, break
-            strategy = Driver.objects.get(driver_name = media_name).strategy
 
-            if strategy == "strategy2":
-                available, should_login = self.is_account_available_strategy2(account, current_date,media_name)
-            else :
-                available, should_login = self.is_account_available_strategy1(account, current_date,media_name)
-
-            media_idx = Driver.objects.get(driver_name=account.media)
+            print('---------------------cookies ------------------------')
+            print(account.cookie)
+            print("-"*130)
             all_accounts_situations.append(
                 {"account": {
                     "user_id": account.user_id, 
                     "login": account.login, 
                     "password": account.password, 
                     "ip": account.ip, 
-                    "media": media_idx.driver_name, 
-                    "cookie": account.cookie or "", "cookie_start": account.cookie_start.strftime("%Y-%m-%d %H:%M:%S") if account.cookie_start else "", "cookie_expected_end": account.cookie_expected_end.strftime("%Y-%m-%d %H:%M:%S") if account.cookie_expected_end else "", "cookie_real_end": account.cookie_real_end.strftime("%Y-%m-%d %H:%M:%S") if account.cookie_real_end else "1980-01-01 00:00:00.954774+00:00", "modified_at": account.modified_at}, "available": available, "should_login": should_login})  # noqa E501
+                    "media": media_name, 
+                    "cookie": account.cookie or "", 
+                    "cookie_start": account.cookie_start.strftime("%Y-%m-%d %H:%M:%S") if account.cookie_start else "", 
+                    "cookie_expected_end": account.cookie_expected_end.strftime("%Y-%m-%d %H:%M:%S") if account.cookie_expected_end else "", 
+                    "cookie_real_end": account.cookie_real_end.strftime("%Y-%m-%d %H:%M:%S") if account.cookie_real_end else "1980-01-01 00:00:00.954774+00:00", 
+                    "modified_at": account.modified_at}, 
+                    "available": available, 
+                    "should_login": should_login})  
+                    
         accounts_available = list(filter(lambda account: account["available"], all_accounts_situations))
         # if there are no accounts available, just tell the Scheduler that there are no accounts
         self.logger.info(f'\n account available = {len(accounts_available)}')
@@ -108,6 +113,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
         if not accounts_available:
             self.logger.info(f"There is no account available")
             return Response(status=status.HTTP_200_OK, data=[])
+
         # login and get cookies
         accounts_selected = self.get_cookies_by_login(accounts_available, nb_jobs, media_name)
         return Response(status=status.HTTP_200_OK, data=accounts_selected)
@@ -227,7 +233,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
         except FieldDoesNotExist as e :
             self.logger.error(f"Field Does not exist {e}")
 
-    def is_account_available_strategy1(self, account, current_date, media_name):
+    def strategy1(self, account, current_date, media_name):
         """To verify if an account is now available following the first strategy
 
         Args:
@@ -238,61 +244,59 @@ class AccountAuthentificationViewSet(GenericViewSet):
             _Tuple(Boolean, Boolean)_: (Is this account available, Should have a login or not)
         """
         cookie = account.cookie
+        cookie_start = account.cookie_start
         cookie_real_end = account.cookie_real_end
         cookie_expected_end = account.cookie_expected_end
         ip = account.ip
 
+        # check if there is availabe nodes
         if get_node_available(self.logger, ip) == 0:
             self.logger.info(f"There is no node selenium available in cluster {ip}")
             return (False, False)
         
         last_use_date = cookie_real_end
         if not cookie :
-
-            if not last_use_date:       # we are using this account for the first time
-                self.logger.info(f"{account.user_id} has never been used or has stayed empty for three hours, so login if necessary")  # noqa E501
+            if not cookie_real_end:       # if cookie_real_end is empty this mean we are going to use this account for the first time
+                self.logger.info(f"{account.user_id} has never been used or has stayed empty for three hours, so login if necessary")  
                 return (True, True)
+            # check if the account has completed 3 hours of rest
             next_use_date = last_use_date + timedelta(hours=3)
             return (current_date >= next_use_date, True)
-        dag_runs = AirflowDAGRUN.objects.filter(session=account)  # check if this session is runing
+
+        # check if there is a running session for this account    
+        dag_runs = AirflowDAGRUN.objects.filter(session=account)  
         
-        if cookie_expected_end >= current_date:  # The session is in 3 hours
+
+        if cookie_expected_end >= current_date :  # The session is in 3 hours
             # check if there are already two DAG_Runs using this session
             # if no, we can use this session, otherwise no
             self.logger.info(f"{account.user_id} there are {len(dag_runs)} DAG_Runs using this session, ")
-            return (len(dag_runs) < 3, False)
-
-        # if not cookie_real_end and 
+            return (len(dag_runs) < 2, False)
 
         else:  # The session has finished 3 hours
-            hours = (current_date - cookie_expected_end).seconds // 60 // 60
-            if len(dag_runs) > 1 and hours < 1.5:
-                # wait for crawl terminated
-                self.logger.info(f"{account.user_id} is in using, so don't stop it and never use it")
+            if len(dag_runs) > 1 :
+                # wait for crawl to be completed
+                self.logger.info(f"{account.user_id} is in use, so don't stop it and never use it")
             else:
-                # update table AccountAuthentification
 
-# ------------------------------------ start new code ----------------------------------------------
                 try :
+                    hours = (current_date - cookie_real_end).seconds // 60 // 60
+                    # if the difference between current date and cookie real end is greater than 3 hours we can use the account
                     if hours >= 3 and len(dag_runs) == 0 :
                         self.logger.info(f"{account.user_id} session completed 3 hours of rest")
-                        session_real_end = cookie_expected_end
-                        self.update_account_state(account.user_id,account.cookie_start, cookie_expected_end,"", session_real_end, media_name)
-                        # self.update_account(account.user_id,"",session_real_end, media_name)
+                        self.update_account_state(account.user_id,account.cookie_start, cookie_expected_end,"", cookie_real_end, media_name)
                         return (True, True)
                 except: 
                     pass
                 
-# ------------------------------------ end new code ----------------------------------------------
-
+                # The account should complete 3 hours of rest
                 session_real_end = datetime.now().astimezone(pytz.timezone('Europe/Paris'))
                 self.logger.info(f"{account.user_id} session has finished and it should stop for 3 hours")
-                # self.update_account(account.user_id,"",session_real_end, media_name)
-                self.update_account_state(account.user_id,account.cookie_start, cookie_expected_end,"", session_real_end, media_name)
+                self.update_account_state(account.user_id,account.cookie_start, cookie_expected_end,"", cookie_real_end, media_name)
        
             return (False, False)
 
-    def is_account_available_strategy2(self, account, current_date, media_name):
+    def strategy2(self, account, current_date, media_name):
         """To verify is this account available now
 
         Args:
@@ -302,34 +306,33 @@ class AccountAuthentificationViewSet(GenericViewSet):
         Returns:
             _Tuple(Boolean, Boolean)_: (Is this account available, Should have a login or not)
         """
-        # If cookie is None, this account has no session
         cookie = account.cookie
         cookie_real_end = account.cookie_real_end
         cookie_expected_end = account.cookie_expected_end
-        login = account.login  # noqa F841
+        login = account.login  
 
         last_use_date = cookie_real_end
 
+        # If cookie is None, you can't use it. You need to add cookies first!
         if not cookie: 
             self.logger.info(f"There is no cookies for this account {login}")
             return  (False, False)
 
 
-        elif not check_cookies(cookie):
-            # self.update_account(user_id= account.user_id,cookie="",session_real_end= None, media_name=media_name)
+        elif not check_cookies(cookie): 
+            # if the cookies are not valid we need to delete them from the database
             self.update_account_state(account.user_id,account.cookie_start, account.cookie_expected_end,"", None, media_name)
-            self.logger.info(f"The cookies for this account {account.user_id} are expired")  # noqa E501
+            self.logger.info(f"The cookies for this account {account.user_id} are expired")  
             return (False, False)
-                            
+
+                           
         if not account.cookie_start :
-            if not last_use_date  or (current_date >= last_use_date + timedelta(hours=3)):
-                 # If this account is never used
-                self.logger.info(f"{account.user_id} has never been used or has stayed empty for three hours")  # noqa E501
+            # if we don't have a cookie_start we need to check if the account never been used or if it was used and completed 3 hours of rest
+            if not cookie_real_end  or (current_date >= cookie_real_end + timedelta(hours=3)):
+                self.logger.info(f"{account.user_id} has never been used or has stayed empty for three hours")
+                # set the new start and expected cookie end and update the state of the account to available
                 cookie_start = datetime.now().astimezone(pytz.timezone('Europe/Paris'))
                 cookie_expected_end = cookie_start + timedelta(hours=3)
-                # update state of this account available
-    
-                
                 try:
                     AccountAuthentification.objects.filter(user_id=account.user_id, media=media_name).update(
                                 cookie=cookie, cookie_start=cookie_start,
@@ -341,8 +344,6 @@ class AccountAuthentificationViewSet(GenericViewSet):
                 except FieldDoesNotExist as e :
                     self.logger.error(f"Field Does not exist {e}")
                     pass
-
-
                 return (True, False)
             else: 
                 self.logger.info(f"{account.user_id} in rest ")
@@ -350,31 +351,29 @@ class AccountAuthentificationViewSet(GenericViewSet):
 
         dag_runs = AirflowDAGRUN.objects.filter(session=account)
 
-
         if cookie_expected_end >= current_date:
-            # The session is in 3 hours
-            # check if there are already two DAG_Runs using this session
-            # if no, we can use this session, otherwise no
+            # The account doesn't exceeded 3 hours of use
+            # check if there are already a DAG_Runs session using this account
+            # if no, we can use this account, otherwise no
             self.logger.info(f"{account.user_id} there is {len(dag_runs)} DAG_Runs using this session, ")
             return (len(dag_runs) < 1, False)
         else:  # The session has finished 3 hours
-            hours = (current_date - cookie_expected_end).seconds // 60 // 60
-            if len(dag_runs) > 0 and hours < 1.5:
+            if len(dag_runs) > 0 :
                 # wait for crawl to complete
-                self.logger.info(f"{account.user_id} is in using, so don't stop it and never use it")
+                self.logger.info(f"{account.user_id} is in use, so don't stop it and never use it")
             else:
-
                 try :
+                    hours = (current_date - cookie_real_end).seconds // 60 // 60
+                    # if the difference between current date and cookie real end is greater than 3 hours we can use the account
                     if hours >= 3 and len(dag_runs) == 0 :
                         self.logger.info(f"{account.user_id} session completed 3 hours of rest")
-                        session_real_end = cookie_expected_end
                         cookie_start = datetime.now().astimezone(pytz.timezone('Europe/Paris'))
                         cookie_expected_end = cookie_start + timedelta(hours=3)
                         AccountAuthentification.objects.filter(user_id=account.user_id,media=media_name).update(
                                     cookie_start=cookie_start,
                                     cookie_expected_end=cookie_expected_end,
                                     cookie=cookie,
-                                    cookie_real_end=session_real_end,
+                                    cookie_real_end=cookie_real_end,
                                     cookie_valid=True,
                                     account_active=True,
                                     account_valid=True,
@@ -382,13 +381,13 @@ class AccountAuthentificationViewSet(GenericViewSet):
                         return (True, False)
                 except: 
                     pass
-
+                # delete old cookie_start and cookie_expected_end but keep the cookie value and set the account as non available
                 try:
                     AccountAuthentification.objects.filter(user_id=account.user_id,media=media_name).update(
                                 cookie_start=None,
                                 cookie_expected_end=None,
                                 cookie=cookie,
-                                cookie_real_end=datetime.now().astimezone(pytz.timezone('Europe/Paris')),
+                                cookie_real_end=cookie_real_end,
                                 cookie_valid=False,
                                 account_active=False,
                                 account_valid=False,
@@ -645,7 +644,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
         self.logger.info("{cookie_real_end}")
         try:
             account_auth = AccountAuthentification.objects.get(user_id=user_id, media=media)
-            account_auth.cookie_real_end = cookie_real_end  # Assuming you want to set it to the current time
+            account_auth.cookie_real_end = cookie_real_end  
             account_auth.save()
         except AccountAuthentification.DoesNotExist:
             raise APIException("[EXCEPTION] account id does not exist")
