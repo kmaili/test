@@ -61,8 +61,7 @@ def drivers_cookies_update(self, *args):
 
             # print(cookies)
             remote_url = account.ip
-
-            if cookies and get_node_available(logger,remote_url) > 0 and check_cookies(json.dumps(cookies)):
+            if cookies and get_node_available(logger,remote_url) > 0 and check_cookies(json.dumps(cookies))[0]:
                 logger.info(f'media {account.media}')
 
                 new_cookies = driver_update_cookies(media_name=media,cookies=cookies,remote_url=remote_url,driver_info=driver_info)

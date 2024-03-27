@@ -30,6 +30,7 @@ class AccountAuthentification(models.Model):
     cookie_real_end = models.DateTimeField(null=True, blank=True)
     account_active = models.BooleanField(default=False)
     account_valid = models.BooleanField(default=False)
+    issue = models.TextField(null=True,  blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now_add=True)
     class Meta:

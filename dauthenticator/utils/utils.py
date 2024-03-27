@@ -10,7 +10,7 @@ def load_class(dotpath: str):
     m = import_module(module_)
     return getattr(m, func)
 
-
+from typing import Tuple
 
 # def check_cookies(cookies:str,media_name:str)->bool:
 #     """check cookies expiration date"""
@@ -32,20 +32,23 @@ def load_class(dotpath: str):
 
 #     return check
 
-def check_cookies(cookies:str)->bool:
+def check_cookies(cookies:str)->Tuple:
     """check cookies expiration date"""
     expiry=0
-    print('--------------- ookies ',cookies)
-    cookies = json.loads(cookies)
+    error = "cookies are expired"
+    try:
+        cookies = json.loads(cookies)
+    except json.decoder.JSONDecodeError as error :
+        return False, str(error)
 
     for dic in cookies:
        
         expiry = dic.get('expiry')
         if expiry and not (datetime.fromtimestamp(expiry).strftime("%Y/%m/%d") > datetime.now().strftime("%Y/%m/%d")) :
             print(expiry)
-            return False
+            return False, error
 
-    return True
+    return True, ""
 
 def get_node_available(logger, remote_url: str) -> int:
     """

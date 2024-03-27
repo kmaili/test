@@ -77,20 +77,18 @@ class AccountAuthentificationViewSet(GenericViewSet):
         current_date = datetime.now().astimezone(pytz.timezone('Europe/Paris'))
 
         # find all accounts of this media
-        all_accounts = AccountAuthentification.objects.filter(media=media_name, client_name=client_name).order_by("cookie", "cookie_real_end")
+        all_accounts = AccountAuthentification.objects.filter(media=media_name, client_name=client_name, cookie_valid=True).order_by("cookie", "cookie_real_end")
         all_accounts_situations = []
-
+        print(' all_accounts_situations ',len(all_accounts))
         # Get the driver strategy related to the media name
         driver_info = Driver.objects.get(driver_name = media_name)
         for account in all_accounts:
             available, should_login =  getattr(self, driver_info.strategy)(account, current_date, media_name)
+            print('------------------------available ',available)
             # 
             # 1. sort all_accounts in order no cookie and with cookie
             # 2. If there is an account or session available, break
 
-            print('---------------------cookies ------------------------')
-            print(account.cookie)
-            print("-"*130)
             all_accounts_situations.append(
                 {"account": {
                     "user_id": account.user_id, 
@@ -217,7 +215,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
         except FieldDoesNotExist as e :
             self.logger.error(f"Field Does not exist {e}")
 
-    def update_account_state(self, user_id, cookie_start, cookie_expected_end, cookie, session_real_end, media_name, cookie_valid=False, account_active=False, account_valid=False):
+    def update_account_state(self, user_id, cookie_start, cookie_expected_end, cookie, session_real_end, media_name, error="", cookie_valid=False, account_active=False, account_valid=False):
         try:
             AccountAuthentification.objects.filter(user_id=user_id,media=media_name).update(
                         cookie_start=cookie_start,
@@ -227,6 +225,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
                         cookie_valid=cookie_valid,
                         account_active=account_active,
                         account_valid=account_valid,
+                        issue=error
                     )
         except  AccountAuthentification.DoesNotExist:
             self.logger.info("Account not found")
@@ -318,11 +317,11 @@ class AccountAuthentificationViewSet(GenericViewSet):
             self.logger.info(f"There is no cookies for this account {login}")
             return  (False, False)
 
-
-        elif not check_cookies(cookie): 
+        valid, error = check_cookies(cookie)
+        if not valid : 
             # if the cookies are not valid we need to delete them from the database
-            self.update_account_state(account.user_id,account.cookie_start, account.cookie_expected_end,"", None, media_name)
-            self.logger.info(f"The cookies for this account {account.user_id} are expired")  
+            self.update_account_state(account.user_id,account.cookie_start, account.cookie_expected_end,account.cookie, None, media_name, error)
+            self.logger.info(f"The cookies for this account {account.user_id} are not valid {error}")  
             return (False, False)
 
                            
@@ -489,14 +488,14 @@ class AccountAuthentificationViewSet(GenericViewSet):
         cookies = request.data['cookies']
         print(cookies)
         try:
-            table = AccountAuthentification.objects.filter(login=login,media=media_name, client_name=client_name).update(cookie=cookies)
+            table = AccountAuthentification.objects.filter(login=login,media=media_name, client_name=client_name).update(cookie=cookies, cookie_valid=True, issue="")
         except ObjectDoesNotExist as e:
             self.logger.error(f"Object does not exist {e}")
             return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED, data={"status": "Failed"})         
         except FieldDoesNotExist as e :
             self.logger.error(f"Field Does not exist {e}")
             return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED, data={"status": "Failed"})
-        self.logger.info(f'cookies successfuly updates for the account {login}')
+        self.logger.info(f'cookies successfuly updated for the account {login}')
         return Response(status=status.HTTP_200_OK, data={"status": "success"})
 
     @action(detail=False, methods=['POST'])
@@ -651,8 +650,26 @@ class AccountAuthentificationViewSet(GenericViewSet):
         except Exception as e:
             raise APIException(f"[EXCEPTION] there has been an error, Message: {e}")
 
-        return Response({"status": "success"})  # Return a valid Response object
+        return Response({"status": "success"})  
             
+    
+    @action(detail=False, methods=["POST"])
+    def set_cookie_error_message(self, data):
+        print("data -----------------------",data)
+        user_id = data.data["user_id"]
+        media = data.data["media"]
+        error = data.data["error"]
+        try:
+            account_auth = AccountAuthentification.objects.get(user_id=user_id, media=media)
+            account_auth.cookie_valid = False
+            account_auth.issue = error
+            account_auth.save()
+        except AccountAuthentification.DoesNotExist:
+            raise APIException("[EXCEPTION] account id does not exist")
+        except Exception as e:
+            raise APIException(f"[EXCEPTION] there has been an error, Message: {e}")
+
+        return Response({"status": "success"}) 
 
 class DriverViewSet(GenericViewSet):
 

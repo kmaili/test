@@ -13,6 +13,7 @@ class AccountAuthentificationAdmin(ImportExportModelAdmin):
                     'user_id',
                     'media',
                     'cookie',
+                    'issue',
                     'cookie_valid',
                     'cookie_start',
                     'cookie_expected_end',
