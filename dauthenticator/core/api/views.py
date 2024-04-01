@@ -77,7 +77,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
         current_date = datetime.now().astimezone(pytz.timezone('Europe/Paris'))
 
         # find all accounts of this media
-        all_accounts = AccountAuthentification.objects.filter(media=media_name, client_name=client_name, cookie_valid=True).order_by("cookie", "cookie_real_end")
+        all_accounts = AccountAuthentification.objects.filter(media=media_name, client_name=client_name, issue="").order_by("cookie", "cookie_real_end")
         all_accounts_situations = []
         print(' all_accounts_situations ',len(all_accounts))
         # Get the driver strategy related to the media name
@@ -291,7 +291,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
                 # The account should complete 3 hours of rest
                 session_real_end = datetime.now().astimezone(pytz.timezone('Europe/Paris'))
                 self.logger.info(f"{account.user_id} session has finished and it should stop for 3 hours")
-                self.update_account_state(account.user_id,account.cookie_start, cookie_expected_end,"", cookie_real_end, media_name)
+                self.update_account_state(account.user_id,account.cookie_start, cookie_expected_end,"", cookie_real_end, media_name, '')
        
             return (False, False)
 
@@ -655,7 +655,6 @@ class AccountAuthentificationViewSet(GenericViewSet):
     
     @action(detail=False, methods=["POST"])
     def set_cookie_error_message(self, data):
-        print("data -----------------------",data)
         user_id = data.data["user_id"]
         media = data.data["media"]
         error = data.data["error"]
