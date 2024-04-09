@@ -12,25 +12,6 @@ def load_class(dotpath: str):
 
 from typing import Tuple
 
-# def check_cookies(cookies:str,media_name:str)->bool:
-#     """check cookies expiration date"""
-#     expiry=0
-#     cookies = json.loads(cookies)
-
-#     dict_name = {
-#         "instagram": 'ds_user_id',
-#         "facebook": 'fr'
-#     }
-#     name = dict_name[media_name]
-#     for dic in cookies:
-       
-#         if dic.get('name') == name:
-#             expiry = dic.get('expiry')
-#             break
-#     check = datetime.fromtimestamp(expiry).strftime("%Y/%d/%m") > datetime.now().strftime("%Y/%d/%m")
-    
-
-#     return check
 
 def check_cookies(cookies:str)->Tuple:
     """check cookies expiration date"""

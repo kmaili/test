@@ -16,6 +16,8 @@ from dauthenticator.core.api.serializers import AccountAuthentificationSerialize
 from ...utils.logging import Logger
 from ...utils.utils import load_class, check_cookies, get_node_available
 from ...utils import config
+from django.db.models import Q
+
 # 3. Améliorer le code ici, une fonction générale pour tous les drivers login
 # 4. discuter avec Sun pour les commentaires twitter crawl
 
@@ -77,14 +79,20 @@ class AccountAuthentificationViewSet(GenericViewSet):
         current_date = datetime.now().astimezone(pytz.timezone('Europe/Paris'))
 
         # find all accounts of this media
-        all_accounts = AccountAuthentification.objects.filter(media=media_name, client_name=client_name, issue="").order_by("cookie", "cookie_real_end")
+        all_accounts = AccountAuthentification.objects.filter(
+            Q(media=media_name) &
+            Q(client_name=client_name) &
+            (Q(issue__isnull=True) | Q(issue=""))
+        ).order_by("cookie", "cookie_real_end")
+
         all_accounts_situations = []
         print(' all_accounts_situations ',len(all_accounts))
+
         # Get the driver strategy related to the media name
         driver_info = Driver.objects.get(driver_name = media_name)
         for account in all_accounts:
             available, should_login =  getattr(self, driver_info.strategy)(account, current_date, media_name)
-            print('------------------------available ',available)
+            print('available ',available)
             # 
             # 1. sort all_accounts in order no cookie and with cookie
             # 2. If there is an account or session available, break
@@ -256,7 +264,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
         last_use_date = cookie_real_end
         if not cookie :
             if not cookie_real_end:       # if cookie_real_end is empty this mean we are going to use this account for the first time
-                self.logger.info(f"{account.user_id} has never been used or has stayed empty for three hours, so login if necessary")  
+                self.logger.info(f"{account.user_id} has never been used, so login is necessary")  
                 return (True, True)
             # check if the account has completed 3 hours of rest
             next_use_date = last_use_date + timedelta(hours=3)
