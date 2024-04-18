@@ -13,7 +13,7 @@ def load_class(dotpath: str):
 from typing import Tuple
 
 
-def check_cookies(cookies:str)->Tuple:
+def check_cookies(cookies:str, media_name="")->Tuple:
     """check cookies expiration date"""
     expiry=0
     error = "cookies are expired"
@@ -22,12 +22,13 @@ def check_cookies(cookies:str)->Tuple:
     except json.decoder.JSONDecodeError as error :
         return False, str(error)
 
-    for dic in cookies:
-       
-        expiry = dic.get('expiry')
-        if expiry and not (datetime.fromtimestamp(expiry).strftime("%Y/%m/%d") > datetime.now().strftime("%Y/%m/%d")) :
-            print(expiry)
-            return False, error
+    if media_name != "facebook_scraper":
+        for dic in cookies:
+        
+            expiry = dic.get('expiry')
+            if expiry and not (datetime.fromtimestamp(expiry).strftime("%Y/%m/%d") > datetime.now().strftime("%Y/%m/%d")) :
+                print(expiry)
+                return False, error
 
     return True, ""
 
