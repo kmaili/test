@@ -28,6 +28,7 @@ class AccountAuthentification(models.Model):
     cookie_start = models.DateTimeField(null=True, blank=True)
     cookie_expected_end = models.DateTimeField(null=True, blank=True)
     cookie_real_end = models.DateTimeField(null=True, blank=True)
+    consumption_time = models.IntegerField(default=0)
     account_active = models.BooleanField(default=False)
     account_valid = models.BooleanField(default=False)
     issue = models.TextField(null=True,  blank=True)

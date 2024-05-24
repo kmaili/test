@@ -15,7 +15,8 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     "54.36.177.119",
     "51.89.21.5",
-    "178.33.234.139"
+    "178.33.234.139",
+    "139.99.130.181"
 ]
 # ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["dauthenticator.prod.netethic.fr"])
 

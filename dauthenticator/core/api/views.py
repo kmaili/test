@@ -108,7 +108,8 @@ class AccountAuthentificationViewSet(GenericViewSet):
                     "cookie_start": account.cookie_start.strftime("%Y-%m-%d %H:%M:%S") if account.cookie_start else "", 
                     "cookie_expected_end": account.cookie_expected_end.strftime("%Y-%m-%d %H:%M:%S") if account.cookie_expected_end else "", 
                     "cookie_real_end": account.cookie_real_end.strftime("%Y-%m-%d %H:%M:%S") if account.cookie_real_end else "1980-01-01 00:00:00.954774+00:00", 
-                    "modified_at": account.modified_at}, 
+                    "modified_at": account.modified_at,
+                    "consumption_time": account.consumption_time}, 
                     "available": available, 
                     "should_login": should_login})  
                     
@@ -192,7 +193,8 @@ class AccountAuthentificationViewSet(GenericViewSet):
             accounts_selected.extend(accounts_logined)
         # if all the accounts have been login, select that used earliest
         if len(accounts_selected) < nb_jobs:
-            accounts_in_using_once.sort(key=lambda account: account["account"]["modified_at"])
+            # accounts_in_using_once.sort(key=lambda account: account["account"]["modified_at"])
+            accounts_in_using_once.sort(key=lambda account: account["account"]["consumption_time"])
             accounts_selected.extend(accounts_in_using_once)
         # Json parser cookie for accounts:
         accounts_selected = accounts_selected[:nb_jobs]
@@ -649,9 +651,14 @@ class AccountAuthentificationViewSet(GenericViewSet):
         self.logger.info("{media}")
         cookie_real_end = data.data["cookie_real_end"]
         self.logger.info("{cookie_real_end}")
+        consumption_time_driver = data.data["consumption_time"]
+        self.logger.info(f"consumption_time_driver: {consumption_time_driver}")
         try:
             account_auth = AccountAuthentification.objects.get(user_id=user_id, media=media)
-            account_auth.cookie_real_end = cookie_real_end  
+            print("account_auth: ", account_auth)
+            account_auth.cookie_real_end = cookie_real_end
+            account_auth.consumption_time = account_auth.consumption_time + int(consumption_time_driver)
+            print("final_consumption_value: ", account_auth.consumption_time)
             account_auth.save()
         except AccountAuthentification.DoesNotExist:
             raise APIException("[EXCEPTION] account id does not exist")

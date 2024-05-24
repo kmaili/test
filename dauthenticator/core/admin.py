@@ -18,6 +18,7 @@ class AccountAuthentificationAdmin(ImportExportModelAdmin):
                     'cookie_start',
                     'cookie_expected_end',
                     'cookie_real_end',
+                    'consumption_time',
                     'account_active',
                     'account_valid',
                     'created_at',
