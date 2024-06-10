@@ -14,7 +14,10 @@ class AccountAuthentification(models.Model):
         ('quora', 4),
         ('adoasis', 5),
         ('tumblr', 6),
-        ('facebook_scraper',7)  
+        ('facebook_scraper',7),
+        ('youtube',8),  
+        ('threads',9),  
+
     )
     login = models.EmailField(max_length=256)
     password = models.CharField(max_length=250)
