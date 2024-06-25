@@ -645,6 +645,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
     
     @action(detail=False, methods=["POST"])
     def update_real_end(self, data):
+        cookies = data.data['cookies']
         user_id = data.data["user_id"]
         self.logger.info("{user_id}")
         media = data.data["media"]
@@ -659,6 +660,7 @@ class AccountAuthentificationViewSet(GenericViewSet):
             account_auth.cookie_real_end = cookie_real_end
             account_auth.consumption_time = account_auth.consumption_time + int(consumption_time_driver)
             print("final_consumption_value: ", account_auth.consumption_time)
+            account_auth.cookie = cookies
             account_auth.save()
         except AccountAuthentification.DoesNotExist:
             raise APIException("[EXCEPTION] account id does not exist")
@@ -673,10 +675,12 @@ class AccountAuthentificationViewSet(GenericViewSet):
         user_id = data.data["user_id"]
         media = data.data["media"]
         error = data.data["error"]
+        cookie_real_end = data.data["cookie_real_end"]
         try:
             account_auth = AccountAuthentification.objects.get(user_id=user_id, media=media)
             account_auth.cookie_valid = False
             account_auth.issue = error
+            account_auth.cookie_real_end = cookie_real_end
             account_auth.save()
         except AccountAuthentification.DoesNotExist:
             raise APIException("[EXCEPTION] account id does not exist")
